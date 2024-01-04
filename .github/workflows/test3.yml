@@ -18,6 +18,5 @@ jobs:
                       -H "Content-Type: application/json" \
                       -H "Authorization: Bearer $GITHUB_TOKEN" \
                       -H "X-GitHub-Api-Version: 2022-11-28" \
-                      --data @- << EOF
-                      {"data": "Eval type: retrieval"}
-                      EOF
+                      -d '{"data": "Eval type: retrieval"}'
+
