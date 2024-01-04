@@ -30,7 +30,7 @@ jobs:
             -   name: Run Eval
                 id: step1
                 run: |
-                    CMD="echo 'first line of output ${{ inputs.eval_type }} ${env}'; echo 'second line of output'; echo '3rd line of output'"
+                    CMD="echo 'first line of output "${{ inputs.eval_type }}" "${env}"'; echo 'second line of output'; echo '3rd line of output'"
                     delta=$(eval $CMD)
                     delta="${delta//'%'/'%25'}"
                     delta="${delta//$'\n'/'%0A'}"
