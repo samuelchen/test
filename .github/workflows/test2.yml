@@ -20,3 +20,14 @@ jobs:
         steps:
             -   run: echo "${{ needs.eval.outputs.report }}"
 
+            -   name: Add comment to PR
+                env:
+                    URL: ${{ github.event.label.url }}
+                    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                run: |
+                    curl \
+                      -X POST \
+                      $URL \
+                      -H "Content-Type: application/json" \
+                      -H "Authorization: token $GITHUB_TOKEN" \
+                      --data '{ "body": "${{ needs.eval.outputs.report }}" }'
