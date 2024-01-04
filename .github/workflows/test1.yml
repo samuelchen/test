@@ -5,7 +5,7 @@ on:
 
 jobs:
     eval:
-        uses: samuelchen/test/.github/workflows/test.yml@main
+        uses: samuelchen/test/.github/workflows/test.yml@master
 
     report:
         runs-on: ubuntu-latest
