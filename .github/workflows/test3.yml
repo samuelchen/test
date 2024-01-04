@@ -19,7 +19,5 @@ jobs:
                       -H "Authorization: Bearer $GITHUB_TOKEN" \
                       -H "X-GitHub-Api-Version: 2022-11-28" \
                       --data-binary @- << EOF
-                      Eval type: retrieval
-                      
-                      Dataset: simple
+                      {"data": "Eval type: retrieval"}
                       EOF
