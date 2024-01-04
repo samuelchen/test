@@ -21,13 +21,12 @@ jobs:
             -   run: echo "${{ needs.eval.outputs.report }}"
             -   run: echo "${{ github.event.pull_request.comments_url }}"
             -   name: Add comment to PR
-                env:
-                    URL: ${{ github.event.pull_request.comments_url }}
-                    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-                run: |
-                    curl \
-                      -X POST \
-                      $URL \
-                      -H "Content-Type: application/json" \
-                      -H "Authorization: token $GITHUB_TOKEN" \
-                      --data '{ "body": "${{ needs.eval.outputs.report }}" }'
+                uses: actions/github-script@v6
+                with:
+                    script: |
+                        github.rest.issues.createComment({
+                          issue_number: context.issue.number,
+                          owner: context.repo.owner,
+                          repo: context.repo.repo,
+                          body: "${{ needs.eval.outputs.report }}"
+                        })
