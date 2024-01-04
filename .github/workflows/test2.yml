@@ -26,11 +26,11 @@ jobs:
                     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 run: |
                     curl \
-                      -X POST \
-                      $URL \
-                      -H "Content-Type: application/json" \
-                      -H "Authorization: Bearer $GITHUB_TOKEN" \
-                      -H "X-GitHub-Api-Version: 2022-11-28" \
-                      --data-binary @- << EOF
-                      { "body": "${{ needs.eval.outputs.report }}" }
-                      EOF
+                    -X POST \
+                    $URL \
+                    -H "Content-Type: application/json" \
+                    -H "Authorization: Bearer $GITHUB_TOKEN" \
+                    -H "X-GitHub-Api-Version: 2022-11-28" \
+                    --data-binary @- << EOF
+                    { "body": "${{ needs.eval.outputs.report }}" }
+                    EOF
