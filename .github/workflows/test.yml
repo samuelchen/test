@@ -1,23 +1,23 @@
-name: test
+name: My Callable
 
 on:
-  workflow_dispatch:
-  workflow_call:
-      inputs:
-          eval_type:
-              description: 'agent/retrieval/plan_retrieval'
-              default: 'retrieval'
-              required: true
-              type: string
-          dataset:
-              description: 'Dataset to evaluate on'
-              default: 'simple'
-              required: true
-              type: string
-      outputs:
-          report:
-              description: "The eval report"
-              value: ${{ jobs.eval.outputs.report }}
+    workflow_dispatch:
+    workflow_call:
+        inputs:
+            eval_type:
+                description: 'agent/retrieval/plan_retrieval'
+                default: 'retrieval'
+                required: true
+                type: string
+            dataset:
+                description: 'Dataset to evaluate on'
+                default: 'simple'
+                required: true
+                type: string
+        outputs:
+            report:
+                description: "The eval report"
+                value: ${{ jobs.eval.outputs.report }}
 jobs:
     eval:
         runs-on: ubuntu-latest
@@ -25,10 +25,19 @@ jobs:
             report: ${{ steps.step1.outputs }}
         env:
             ENV: test
-            DATASET: ${{ inputs.dataset}}
+            DATASET: ${{ inputs.dataset }}
         steps:
             -   name: Run Eval
                 id: step1
                 run: |
                     CMD="echo 'first line of output ${{ inputs.eval_type }} ${env}'; echo 'second line of output'; echo '3rd line of output'"
-                    eval $CMD
+                    delta=$(eval $CMD)
+                    delta="${delta//'%'/'%25'}"
+                    delta="${delta//$'\n'/'%0A'}"
+                    delta="${delta//$'\r'/'%0D'}"
+                    echo "::set-output name=delta_code::$delta"
+
+            -   name: Report
+                id: report
+                run: |
+                    echo "${{ steps.step1.outputs.delta_code }}"
