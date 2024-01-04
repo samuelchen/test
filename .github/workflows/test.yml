@@ -22,7 +22,7 @@ jobs:
     eval:
         runs-on: ubuntu-latest
         outputs:
-            report: ${{ steps.step1.outputs }}
+            report: ${{ steps.step1.outputs.delta_code }}
         env:
             ENV: test
             DATASET: ${{ inputs.dataset }}
