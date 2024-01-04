@@ -5,10 +5,13 @@ on:
 
 jobs:
     eval:
-        uses: samuelchen/test/.github/workflows/test.yml@master
+        uses: onwish/cocktail/.github/workflows/test.yml@master
+        with:
+            dataset: simple
 
     report:
         runs-on: ubuntu-latest
         needs: eval
         steps:
             -   run: echo ${{ needs.job1.outputs.reports }}
+
