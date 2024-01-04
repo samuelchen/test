@@ -19,10 +19,10 @@ jobs:
         needs: eval
         steps:
             -   run: echo "${{ needs.eval.outputs.report }}"
-
+            -   run: echo "${{ github.event.pull_request.url }}"
             -   name: Add comment to PR
                 env:
-                    URL: ${{ github.event.label.url }}
+                    URL: ${{ github.event.pull_request.url }}
                     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 run: |
                     curl \
