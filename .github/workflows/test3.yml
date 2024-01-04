@@ -1,0 +1,1417 @@
+name: PR Caller
+
+on:
+    workflow_dispatch:
+
+jobs:
+    report:
+        runs-on: ubuntu-latest
+        steps:
+            -   name: Add comment to PR
+                env:
+                    URL: ${{ github.event.pull_request.comments_url }}
+                    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                run: |
+                    curl \
+                      -X POST \
+                      $URL \
+                      -H "Content-Type: application/json" \
+                      -H "Authorization: Bearer $GITHUB_TOKEN" \
+                      -H "X-GitHub-Api-Version: 2022-11-28" \
+                      --data-binary @- << EOF
+Eval type: retrieval
+
+Dataset: simple
+===== Agent Config / Env Vars =====
+
+{
+    "agent_name": "plan_retrieval",
+    "answer_token_limit": 7000,
+    "hybrid_search_alpha": 0.3,
+    "include_memory_msgs_type": "only_user_msgs",
+    "intent": "default",
+    "news_fetch_per_query_num_results": 3,
+    "news_fetch_total_limit": 5,
+    "openai_max_tokens": 750,
+    "search_earning_num_results": 4,
+    "search_sec_filing_num_results": 4,
+    "searcher_type": "pinecone_hybrid",
+    "short_term_memory_mins": 5,
+    "sys_prompt": "\nUse the provided references delimited by triple quotes to answer questions.\nIf the answer cannot be found in the references, write \"I could not find an answer.\"\n\nWhen you give the answer, you should ONLY take the facts(citations) from the provided references and also give the sources in citations style like this:\n\"your example answer .... [1]\"\n\nAnd for each citation you should output in the end one by one in this format:\n\n@@\n\n[1] https://www.example.com\n<the original quote in the references> like \"Zuck said ...\"\n[2] https://www.example2.com\n<the original quote in the references> like \"Zuck also mentioned ...\"\n...\n\nRules:\n1. All the numbers should be shown in millions\n2. For each citation, try to keep it the original quote in reasonable size (LESS THAN 3 sentences)\n"
+}
+PINECONE_API_KEY=517ad2c5-0fc1-4772-a5d9-656c35c5908b
+PINECONE_ENV=us-east1-gcp
+PINECONE_INDEX_NAME=onwish-dev
+PINECONE_HYBRID_INDEX_NAME=onwish-hybrid-dev
+PINECONE_NAMESPACE=sam
+
+
+=========== Sample 1 ===========
+【Question】:
+ How many employees does meta have? QoQ since lay off plan annoucement.
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2022-Q4', '2023-Q1', '2023-Q2', '2023-Q3'], 'query': 'number of employees, layoff, headcount', 'tickers': ['META']}
+ - Function: search_earning_calls
+   Params  : {'periods': ['2022-Q4', '2023-Q1', '2023-Q2', '2023-Q3'], 'query': 'number of employees, layoff, headcount', 'tickers': ['META']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : https://www.sec.gov/Archives/edgar/data/1326801/000132680123000103/meta-20230930.htm
+   Snippet: Headcount was 66,185 as of September 30, 2023, a decrease of 24% year-over-year. A substantial majority of the employees impacted by the layoffs are no longer included in our reported headcount as of September 30, 2023.
+ - Source : https://www.sec.gov/Archives/edgar/data/1326801/000132680123000093/meta-20230630.htm
+   Snippet: Headcount was 71,469 as of June 30, 2023, a decrease of 14% year-over-year.
+ - Source : https://www.sec.gov/Archives/edgar/data/1326801/000132680123000067/meta-20230331.htm
+   Snippet: Headcount was 77,114 as of March 31, 2023, a decrease of 1% year-over-year.
+ - Source : https://www.sec.gov/Archives/edgar/data/1326801/000132680123000013/meta-20221231.htm
+   Snippet: Headcount was 86,482 as of December 31, 2022, an increase of 20% year-over-year.
+
+【Recall】: 0.0
+
+=========== Sample 2 ===========
+【Question】:
+ Which type of customer have strong demand for Meta ads worldwide in the past two quarters?
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2023-Q3', '2023-Q2'], 'query': 'advertising demand customer cohort', 'tickers': ['META']}
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q3', '2023-Q2'], 'query': 'advertising demand customer cohort', 'tickers': ['META']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : https://www.sec.gov/Archives/edgar/data/1326801/000132680123000103/meta-20230930.htm
+   Snippet: In addition, year-over-year advertising revenue growth was driven mainly by marketer spending in online commerce, consumer packaged goods, and gaming while online commerce and gaming benefited from marketers based in China.
+ - Source : https://www.sec.gov/Archives/edgar/data/1326801/000132680123000093/meta-20230630.htm
+   Snippet: In addition, year-over-year advertising revenue growth was driven mainly by marketer spending in online commerce, the entertainment and media industries, and consumer packaged goods.
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: Within ad revenue, the online commerce vertical was the largest contributor to year-over-year growth, followed by CPG and gaming.
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: On a user geography basis, ad revenue growth was strongest in rest of world and Europe at 36% and 35%, respectively, followed by Asia-Pacific at 19% and North America at 17%
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: To give you a little bit of color, North America we saw accelerate by 7 points due primarily to strong demand from China advertisers.
+ - Source : META's earning call transcript 2023-Q2
+   Snippet: Within ad revenue, the online commerce vertical was the largest contributor to year-over-year growth, followed by entertainment and media, and CPG. Online commerce benefited from strong spend among advertisers in China reaching customers in other markets. On a user geography basis, ad revenue growth was strongest in Rest of World at 16%, followed by Europe, North America, and Asia-Pacific at 14%, 11%, and 10%, respectively.
+
+【Recall】: 0.0
+
+=========== Sample 3 ===========
+【Question】:
+ why did Zurkerberg think business messaging will be the biggest opportunity for chatbot?
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2023-Q3'], 'query': 'Business messaging, chatbot opportunity', 'tickers': ['META']}
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q3'], 'query': 'Business messaging, chatbot opportunity', 'tickers': ['META']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: There were more than 600 million conversations between people and businesses every day on our platforms. To give you a sense of what this could look like when it's scaled globally, every week now, more than 60% of people on WhatsApp in India message a business app account.
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: Our revenue from click-to-message ads in India has doubled year-over-year. And I think that this is going to be a really big opportunity for our new business AIs that I talked about earlier that we hope will enable any business to easily set up an AI that people can message to help with commerce and support.
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: Today, most commerce and messaging is in-countries where the cost of labor is low enough that it makes sense for businesses to have people corresponding with customers over text and in those countries like Thailand or Vietnam, there's a huge amount of commerce that happens in this way, but in lots of parts of the world, the cost of labor is too expensive for this to be viable but with business AIs, we have the opportunity to bring down that cost and expand commerce in messaging into larger economies across the world. So making business AIs work for more businesses is going to be an important focus for us into 2024.
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: Family of Apps other revenue was $293 million in Q3, up 53% driven by strong business messaging revenue growth from our WhatsApp Business platform.
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: Here, our focus is on continuing to drive marketing performance for businesses, including through business messaging. There are four areas of this work. Improving reels monetization, creating engaging on-platform ad experiences, making it easier for advertisers to connect their marketing data and increasingly leveraging AI across our ad systems and products.
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: We're progressing on our work to enable further down-the-funnel conversions and longer-term, we're excited about the potential of AI to help businesses message with customers more efficiently at-scale.
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: We've recently started testing AI capabilities with a few partners and will take our time to get the experience right, but we believe this will be a big unlock for business messaging in the future. We're also excited about the potential for paid messaging which serves as a nice complement to click-to-messaging ads by helping businesses develop ongoing relationships with customers once they're in a messaging thread.
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: Of course, whenever there's more engagement in the apps, that creates the opportunity for more monetization so there's that – on the monetization side, and then the other big opportunity on monetization which I talked about up front is just business messaging. One of the big things that I think is a key unlock for making the business messaging, for making that business model work around the globe is effectively making it so that businesses in countries where there's a higher-cost of labor, can have an AI that can respond to messages from people so that way it's not cost prohibitive for them to engage in that type of interaction with customers.
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: So, I think that if we can – as we are able to rollout the business AIs, I think that that can really unlock and grow the business messaging business in a big way, but we have a lot of work to do to get there, so that's kind of a basic view on how I think this will affect the engagement in business.
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: On the messaging side, I think that the way that we're looking at these AIs kind of ties into that directly where you'll be able to message with Meta AI or any of these different AIs, whether it's for fun, you have a question about something, you want help doing something, you want to play a game or you want to message with a business for commerce or you want to engage with your favorite creator and they wouldn't normally otherwise have time to message you back, but now they have an AI representing them that can, I think that that will accrue to kind of – to messaging behavior.
+
+【Recall】: 0.0
+
+=========== Sample 4 ===========
+【Question】:
+ Was meta guidance range of this quarter wider than the last one?
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2023-Q2', '2023-Q3'], 'query': 'guidance, outlook, projection', 'tickers': ['META']}
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q2', '2023-Q3'], 'query': 'guidance, outlook, projection', 'tickers': ['META']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : https://www.sec.gov/Archives/edgar/data/1326801/000132680123000103/meta-20230930.htm
+   Snippet: We anticipate making capital expenditures of approximately $27 billion to $29 billion and $30 billion to $35 billion in 2023 and 2024, respectively.
+ - Source : https://www.sec.gov/Archives/edgar/data/1326801/000132680123000093/meta-20230630.htm
+   Snippet: We anticipate making capital expenditures of approximately $27 billion to $30 billion in 2023.
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: We expect fourth quarter 2023 total revenue to be in the range of $36.5 billion to $40 billion.
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: We anticipate that our full year 2023 total expenses will be in the range of $87 billion to $89 billion, lowered from our prior range of $88 billion to $91 billion.
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: We expect full year 2024 total expenses to be in the range of $94 billion to $99 billion.
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: We expect 2023 capital expenditures to be in the range of $27 billion to $29 billion, updated from our prior estimate of $27 billion to $30 billion.
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: We anticipate our full year 2024 capital expenditures will be in the range of $30 billion to $35 billion, with growth driven by investments in servers, including both non-AI and AI hardware, and in data centers as we ramp-up construction on sites with the new data center architecture we announced late last year.
+ - Source : META's earning call transcript 2023-Q2
+   Snippet: Turning now to the revenue outlook, we expect third quarter 2023 total revenue to be in the range of $32 billion to $34.5 billion.
+ - Source : META's earning call transcript 2023-Q2
+   Snippet: Turning now to the expense outlook, we anticipate that our full year 2023 total expenses will be in the range of $88 billion to $91 billion, increased from our prior range of $86 billion to $90 billion due to legal-related expenses recorded in Q2.
+ - Source : META's earning call transcript 2023-Q2
+   Snippet: Turning now to the CapEx outlook, we expect capital expenditures to be in the range of $27 billion to $30 billion, lowered from our prior estimate of $30 billion to $33 billion.
+
+【Recall】: 0.0
+
+=========== Sample 5 ===========
+【Question】:
+ How long does time spend increase on current product due to the improvement in AI ?
+
+【Func Calls】:
+
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q3'], 'query': 'Time spent increase, AI improvement', 'tickers': ['META']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: This year alone, we've seen a 7% increase in time spent on Facebook and a 6% increase on Instagram as a result of recommendation improvements.
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: We estimate that with all the ranking and product improvements that we've made, Reels has now driven more than 40% increase in time spent on Instagram since launch.
+
+【Recall】: 0.0
+
+=========== Sample 6 ===========
+【Question】:
+ what is the run rate of advantage+ shopping campaign of meta? QoQ?
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2023-Q2', '2023-Q3'], 'query': 'run rate, advantage+ shopping campaign', 'tickers': ['META']}
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q2', '2023-Q3'], 'query': 'run rate, advantage+ shopping campaign', 'tickers': ['META']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: Our AI tools for advertisers are also driving results with Advantage+ shopping campaigns reaching a $10 billion run rate and more than half of our advertisers are using our Advantage+ creative tools to optimize images in text and their ads creative.
+ - Source : META's earning call transcript 2023-Q2
+   Snippet: We're seeing good progress on Reels monetization as well with the annual revenue run rate across our apps now exceeding $10 billion, up from $3 billion last fall.
+
+【Recall】: 0.0
+
+=========== Sample 7 ===========
+【Question】:
+ when is the A+SC launched?
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2020-Q1', '2020-Q2', '2020-Q3', '2020-Q4', '2021-Q1', '2021-Q2', '2021-Q3', '2021-Q4', '2022-Q1', '2022-Q2', '2022-Q3', '2022-Q4', '2023-Q1', '2023-Q2', '2023-Q3'], 'query': 'Advantage+ shopping campign, A+SC, launch time', 'tickers': ['META']}
+ - Function: search_earning_calls
+   Params  : {'periods': ['2020-Q1', '2020-Q2', '2020-Q3', '2020-Q4', '2021-Q1', '2021-Q2', '2021-Q3', '2021-Q4', '2022-Q1', '2022-Q2', '2022-Q3', '2022-Q4', '2023-Q1', '2023-Q2', '2023-Q3'], 'query': 'Advantage+ shopping campign, A+SC, launch time', 'tickers': ['META']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : META's earning call transcript 2022-Q3
+   Snippet: One example of this is Advantage+ Shopping. We launched it in August.
+
+【Recall】: 0.0
+
+=========== Sample 8 ===========
+【Question】:
+ Did Alphabet ,AWS, Apple,TSLA plan to increase capex in the next quarter or next year?
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2023-Q3', '2023-Q2'], 'query': 'capex increase, capital expenditure increase, next year', 'tickers': ['GOOG', 'AMZN', 'AAPL', 'TSLA']}
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q3', '2023-Q2'], 'query': 'capex increase, capital expenditure increase, next year', 'tickers': ['GOOG', 'AMZN', 'AAPL', 'TSLA']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : https://www.sec.gov/Archives/edgar/data/1652044/000165204423000094/goog-20230930.htm
+   Snippet: We expect to continue to invest in our technical infrastructure, including servers, network equipment, and data centers, over the remainder of 2023 and into 2024 to support the growth of our business and our long-term initiatives, in particular in support of AI.
+ - Source : https://www.sec.gov/Archives/edgar/data/1318605/000162828023034847/tsla-20230930.htm
+   Snippet: Owing and subject to the foregoing as well as the pipeline of announced projects under development, all other continuing infrastructure growth and varying levels of inflation, we currently expect our capital expenditures to exceed $9.00 billion in 2023 and be between $7.00 to $9.00 billion in each of the following two fiscal years.
+ - Source : AAPL's earning call transcript 2023-Q4
+   Snippet: Well, the big areas of investment for us are tooling and equipment for manufacturing plants, our investments in data centers and our investments in our own facilities, both corporate facilities and retail stores. And so, both for the tooling in our plants and our data center investments, we tend to have a bit of a hybrid model where we share some of the investments with our partners and suppliers. And so, maybe that's why you see sometimes a bit of variability. But over the last few years, we made all the investments that we needed to make and obviously, we're planning to make all the investments that we believe are needed and appropriate in order to continue to innovate.
+ - Source : AMZN's earning call transcript 2023-Q3
+   Snippet: For the full year 2023, we expect capital investments to be approximately $50 billion compared to $59 billion in 2022. We expect fulfillment and transportation CapEx to be down year-over-year, partially offset by increased infrastructure CapEx to support growth of our AWS business including additional investments related to generative AI and large language model efforts.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: . I was trying to make the point that we are committed to meaningfully investing in CapEx given all the opportunities we see. We do continue to expect elevated levels of investment in our technical infrastructure. It will be increasing in the fourth quarter and talked about some of the difference in timing, muted timing in the third quarter due to the timing of supplier payments. And then tried to make it clear that we will continue to grow CapEx in 2024. Or more specifically to your question, 2024 aggregate CapEx will be above the full year 2023
+ - Source : TSLA's earning call transcript 2023-Q3
+   Snippet: On the operating expenses front, R&D expenses continued to rise due to Cybertruck prototype builds and pilot production testing, combined with spend on AI technologies like full self-driving, Optimus and Dojo. We have and will continue to make investments in these areas, and hence our capital expenditure and R&D will continue to grow in the near term.
+
+【Recall】: 0.0
+
+=========== Sample 9 ===========
+【Question】:
+ What is the impressions change of Google and Meta? Any drivers?
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2023-Q3'], 'query': 'impression change, impression increase, impression decrease, impression driver', 'tickers': ['GOOG', 'META']}
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q3'], 'query': 'impression change, impression increase, impression decrease, impression driver', 'tickers': ['GOOG', 'META']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : https://www.sec.gov/Archives/edgar/data/1326801/000132680123000103/meta-20230930.htm
+   Snippet: Ad impressions delivered across our Family of Apps increased 31% year-over-year in the third quarter of 2023, partially offset by a 6% year-over-year decrease in our average price per ad.
+ - Source : https://www.sec.gov/Archives/edgar/data/1652044/000165204423000094/goog-20230930.htm
+   Snippet: Impressions change (2%)
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: In Q3, the total number of ad impressions served across our services increased 31% and the average price per ad decreased 6%.
+ - Source : META's earning call transcript 2023-Q3
+   Snippet: Impression growth was mainly driven by Asia-Pacific and rest of world. The year-over-year decline in pricing was driven by strong impression growth, especially from lower monetizing services and regions.
+
+【Recall】: 0.0
+
+=========== Sample 10 ===========
+【Question】:
+ how did alphabet ceo elaborate google cloud clients in the past two quarters?
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2023-Q2', '2023-Q3'], 'query': 'google cloud, cloud,  Vertex AI, Duet AI', 'tickers': ['GOOG']}
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q2', '2023-Q3'], 'query': 'google cloud, cloud,  Vertex AI, Duet AI', 'tickers': ['GOOG']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: Today, more than 60% of the world's thousand largest companies are Google Cloud customers.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: And today more than half of all funded generative AI start-ups are Google Cloud customers. This includes AI21 Labs, Contextual, Elemental Cognition, Writer and more.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: With Duet AI, we are helping leading brands like PayPal and Deutsche Bank boost developer productivity. And we are enabling retailers like Aritzia and Gymshark to gain new insights for better and faster business results. In fact, companies are increasingly using AI for the purpose of finalizing data and customers are choosing Google Cloud because we are the only large Cloud provider with a unified platform to analyze structured and unstructured data.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: In Workspace, thousands of companies and more than 1 million trusted testers have used Duet AI. They are writing and refining content in Gmail and Docs, creating original images from text within slides, organizing data in sheets, and more. These innovations enable us to provide new services and grow our base of 10 million paying customers including enterprises like Grupo Boticário, Unilever and Warner Music.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: We are the only leading security provider that combines front-line intelligence and expertise, a modern security operations platform, and a trusted Cloud foundation, all infused with generative AI, helping protect customers and partners like BT, Jack Henry & Associates and CoverMyMeds.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: GCP revenue growth remained strong across geographies, industries and products, although the Q3 year-on-year growth rate reflects the impact of customer optimization efforts.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: More than 70% of gen AI unicorns are Google Cloud customers, including Cohere, Jasper, Typeface and many more
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: We provide the widest choice of AI supercomputer options with Google TPUs and advanced NVIDIA GPUs, and recently launched new A3 AI supercomputers powered by NVIDIA's H100. This enables customers like AppLovin to achieve nearly 2 times better price performance than industry alternatives.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: Our new generative AI offerings are expanding our total addressable market and winning new customers. We are seeing strong demand for the more than 80 models, including third-party and popular open source in our Vertex, Search and conversational AI platforms with the number of customers growing more than 15x from April to June. Among them, Priceline is improving trip planning capabilities, Carrefour is creating full marketing campaigns in a matter of minutes, and Capgemini is building hundreds of use cases to streamline time-consuming business processes.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: Turning to Google Cloud, we are particularly excited about the customer interest in our AI-optimized infrastructure, our large language models, our AI platform services and our new generative AI offerings such as Duet AI for Google Workspace, although we are still clearly in the early days. At the same time, we continued to experience headwinds in the second quarter from moderation in consumption growth as customers optimized their spend.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: We have embraced customers wanting to be multi-cloud when it makes sense for them.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: Our new anti-money laundering AI helps banks like HSBC identify financial crime risk, and our new AI-powered target and lead identification suite is being applied at Cerevel to help enable drug discovery.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: Our new anti-money laundering AI helps banks like HSBC identify financial crime risk, and our new AI-powered target and lead identification suite is being applied at Cerevel to help enable drug discovery.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: Instacart is using it to improve customer service workflows and companies like Xtend (00:10:06) are scaling sales outreach and optimizing customer service.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: Finally, our AI capabilities are also expanding our partner ecosystem with hundreds of ISVs and SaaS providers such as Box, Salesforce and Snorkel, and the world's largest consulting firms like Accenture and Deloitte. They've collectively committed to train more than 150,000 people on Google Cloud generative AI.
+
+【Recall】: 0.0
+
+=========== Sample 11 ===========
+【Question】:
+ How many users start to test Duet AI?
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2023-Q3'], 'query': 'Duet AI users, test Duet AI', 'tickers': ['GOOG']}
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q3'], 'query': 'Duet AI users, test Duet AI', 'tickers': ['GOOG']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: In Workspace, thousands of companies and more than 1 million trusted testers have used Duet AI.
+
+【Recall】: 0.0
+
+=========== Sample 12 ===========
+【Question】:
+ How was Vertex AI so far?
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2023-Q3'], 'query': 'Vertex AI, Google AI', 'tickers': ['GOOG']}
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q3'], 'query': 'Vertex AI, Google AI', 'tickers': ['GOOG']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: From Q2 to Q3, the number of active generative AI projects on Vertex AI grew by 7x including Highmark Health, which is creating more personalized member materials.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: We are pleased with the ongoing customer engagement with GCP and Workspace and the potential benefit of our AI solutions, including infrastructure and services such as Vertex AI and Duet. We continued to invest aggressively given the significant potential we see, while remaining focused on profitable growth.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: We are seeing strong demand for the more than 80 models, including third-party and popular open source in our Vertex, Search and conversational AI platforms with the number of customers growing more than 15x from April to June
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: Scale of investments that we can directly bring to Cloud now, as I said earlier, we have over 80 models across Vertex, Enterprise, Search and conversational AI, and we are taking all of them, translating it into deep industry solutions. So, I'm excited about it.
+
+【Recall】: 0.0
+
+=========== Sample 13 ===========
+【Question】:
+ What did alphabet management team say about the expense growth related to revenue growth in the past year?
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2022-Q4', '2023-Q1', '2023-Q2', '2023-Q3'], 'query': 'expense growth, revenue growth, relationship of revenue and expense, margin', 'tickers': ['GOOG']}
+ - Function: search_earning_calls
+   Params  : {'periods': ['2022-Q4', '2023-Q1', '2023-Q2', '2023-Q3'], 'query': 'expense growth, revenue growth, relationship of revenue and expense, margin', 'tickers': ['GOOG']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: So overall, that's sort of a truism, as you know well, looking to grow revenues at a faster rate than expenses as we're focused on delivering sustainable financial value. And so that really takes us to the work streams, which I tried to tick through. Again, those remain the driver. They're the real priority. Those are the efforts that are going to enable us to expense growth. And it's moderated as possible while supporting the investment growth that is so exciting in front of us, in particular, around AI.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: We've been saying for some time that we are focused on revenue growth ahead of expense growth and achieved that for the first in some time, and that is cost of sales plus operating expense overall. And we do remain very focused on durably reengineering our cost base.
+ - Source : GOOG's earning call transcript 2023-Q1
+   Snippet: And as we have said repeatedly, we want to ensure that expense growth is not growing out of revenue growth, and that means driving revenue growth and really being as disciplined as we can on these various work streams that we've discussed earlier in this call and last quarter as well to improve our expense growth trajectory.
+ - Source : GOOG's earning call transcript 2022-Q4
+   Snippet: when we talk about being focused on delivering sustainable financial value, that obviously means that expense growth cannot be growing ahead of revenue growth. And we're focused on revenue upside as well as durable changes to the expense base to really ensure we have the capacity to invest in that growth. nd clearly, the emphasis of revenue growth, there's a lot that's exciting ahead of us within Google Services, all of the AI advancements that are improving advertiser ROI and the search user experience and more broadly, as we've talked about across the key product areas.
+ - Source : GOOG's earning call transcript 2022-Q4
+   Snippet: And then very importantly, on expense growth, we have a very strong commitment to -- we keep emphasizing durably reengineer our cost base, and that will benefit all of the segments across Alphabet. And the key components, slowing the pace of hiring as a starting point, product prioritization across Google, as Sundar said, is key.
+
+【Recall】: 0.0
+
+=========== Sample 14 ===========
+【Question】:
+ Which products or businesss did analyst mentioned in the past four earning call questions of Alphabet? 
+
+【Func Calls】:
+
+ - Function: search_earning_calls
+   Params  : {'periods': ['2022-Q4', '2023-Q1', '2023-Q2', '2023-Q3'], 'query': 'Alphabet past four earning call questions, product outcome', 'tickers': ['GOOG']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: There's somewhat of an investor debate about sort of the incremental return on capital to Search when it comes to AI. I know it's early, but are there any examples that you're seeing with SGE or Bard on higher utility, higher conversion rates, more engagement, just something to sort of show signal around the return that could come from these investments?
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: I was hoping you could talk more about Gemini and how it will differentiate from other models some of the multimodal capabilities and what new experiences or agents do you think it could unlock and how we should think about timing? And then also just on Cloud, hoping you can talk about some of the factors there on the decel in cloud and just what you're seeing in terms of optimizations? And is there any sign of new workload deployments taking place?
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: And I wanted to know if we could get your updated thoughts on how AI might impact the broader advertising industry and how you're aligning Alphabet and Google's goals with AI and where it might take the advertising industry in the years ahead. That would be the first question.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: And then about a year ago, Philipp and Ruth started talking about some of the brand advertising headwinds that YouTube was facing. As we start to lap those headwinds, how should we be thinking about a broad recovery in brand advertising versus elements of still headwinds that are being faced in the broader ad space, specifically with YouTube?
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: Two, if I can. First, as we just think about the rollout of SGE across the user base, like how far along is that? And how do you balance the product rollout and consumer uptake versus monetization in that transition?
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: And then the second one, also sort of generative AI related, how quickly are you guys finding new ways of optimizing whether that's shrinking model sizes, chip efficiencies or anything else? And do you think overall capital intensity of the business scales up or do you just find ways to do this more efficiently as usage scales? Anything you could share there would be great.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: I'm going to ask you guys a multipart question on YouTube TV. So firstly, what were the broader objectives for getting Sunday Ticket? How does it perform versus those objectives? What lessons have you learned from having the NFL Sunday Ticket? How does that affect your appetite for more sports going forward?
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: A couple of questions on Q4. Can you provide any color if there's been any pause in advertising around the Middle East conflict in October, anything we should be aware of for Q4?
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: And then second, when we do think about the Sunday Ticket impact, I know you can't give us revenues or expenses, but overall, would that be a headwind to margins in Q4 or something we should be thinking about?
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: Two questions, if I may. First, how do you think about the future structure of AI-driven Search capabilities? Will activity remain centralized in a search bar or will it be decentralized and present in many different applications, including on third-party applications? You alluded to Bard being integrated into multiple Google experiences earlier in the call.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: And then the second question is, any update on the Chrome cookie deprecation plan to begin in 1Q '24? What have you seen so far based on your early testing of Privacy Sandbox? And what advertiser feedback have you received?
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: And then on the comments around stabilization in Cloud, is this something that you just started to see in the September quarter? Or had you seen that starting earlier in the year? And if you just started seeing it in the September quarter, would you have any thoughts on why you would have seen it, like Google Cloud would have seen it maybe later than some of the other hyperscalers?
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: I'd be curious to learn about some of your early learnings and surprises around consumer behavior on how people are using Bard versus Search. And what new behaviors or consumer utility are you most excited about as you think about what Gemini could provide for people over the course of the next year or so?
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: Maybe one for Sundar and one also for Ruth. Sundar, can you talk a little bit about elements of open source versus closed and things like custom silicon and how you're thinking about AI offerings broadly developing over the next couple of years and what you see as some of the key differentiation points that Google, either through the cloud business or the consumer offerings, are going to bring to market, and how we should think about differentiation playing out to a greater degree in AI in the years ahead. That would be number one.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: One for Sundar and one for Ruth. For Sundar, curious, how do you think about timing for more broadly integrating generative AI into Search? And more specifically, what are some of the things you'll need to see to do that?
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: I wanted to just follow up on the -- some of the SGE questions and just get a sense -- I know it's early, but what are you seeing in terms of monetization? And how do you guys think about that as you scale up the deployment of SGE? Is that -- I think there's a lot of concern out there that maybe in the short term, it's a bit of a headwind. But over the longer term, maybe query growth from a more useful product can kind of make up for that. But how do you guys see that playing out? And what can you share there?
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: Great. Just ask about the Cloud. It really looks like revenue growth stabilized despite optimization. So could you talk about the pipeline and the client wins in the quarter, how you felt about those. And then any uptick are you seeing related to AI spending in the total revenues this quarter or in the second half?
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: Great. Maybe one follow-up for Ruth. Did the infrastructure cloud grow faster than Workspaces again this quarter?
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: One for Philipp and one for Sundar. Philipp, can you talk about the ad market? If you step back, you're seeing real size now of weakness in linear TV, ad agencies, small and digital companies were all slowing, and the macro backdrop is definitely cloudy, yet you guys have accelerated your growth this quarter. What factors are you looking at? Do you see that would identify why are you growing while others are really struggling and slowing down?
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: Can I ask on Performance Max? You've had great success there. Could you talk about any vertical or use case expansions? And how long until we possibly get to the point of more automated AI-generated creative in production?
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: Okay. Actually, I'll follow up on that last question, Philipp. You pointed out AI has been used to improve the advertising mousetrap at Google for many years. Do you view generative AI as just a material accelerant of your ability to improve return on ad spend for the millions of marketers who use Google?
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: And if you think about where generative AI would have the most impact, could you peel it part what's your guess now over the next couple of years where it's going to have the most impact on the creative -- on the audience creation, on the campaign optimization? Where do you think the most impact will come from generative AI just for all the -- your advertising customers?
+ - Source : GOOG's earning call transcript 2023-Q1
+   Snippet: I have 2. First one for Sundar. Sundar, I guess as you think over the course of the next 12 months, I know you have a lot of new AI tools to show us, what new behavior changes or capabilities are you most excited about for users, developers and advertisers as these tools come out?
+ - Source : GOOG's earning call transcript 2023-Q1
+   Snippet: And then the second one for Ruth. Could you talk to us about how much of the AI tools have you incorporated internally to sort of drive more productivity out of your engineers, your sales force, your G&A? Or is that sort of something to come over the next couple of years?
+ - Source : GOOG's earning call transcript 2023-Q1
+   Snippet: One for Sundar and then one for Ruth. Sundar, just as you think about integrating Bard into your Search products over time, can you just talk more about what percentage of Search queries you think would utilize large language model-type responses? And how should we think about the cost of running Search on these models relative to today?
+ - Source : GOOG's earning call transcript 2023-Q1
+   Snippet: Maybe 2, if I could, first on cloud. Obviously, one of the dominant themes, and you touched upon it, is this client optimization theme that's going on broadly in cloud computing. Can you give us a little bit more of your perspective on where we are in terms of the optimization theme broadly in cloud computing as a headwind to either revenue growth or backlog growth compared to the tailwinds of broader long-term consumption growth and, possibly, the contribution of AI initiatives to cloud computing growth?
+ - Source : GOOG's earning call transcript 2023-Q1
+   Snippet: And then second on YouTube, obviously, you've seen a lot of success with respect to engagement and consumption on Shorts. Can you give us an update on where we are on monetization in Shorts compared to the consumption you've already seen in usage shifts?
+ - Source : GOOG's earning call transcript 2023-Q1
+   Snippet: I'll just ask a tough question. Sundar, you came up in a group that structured a lot of the Android partnerships from inception and I believe possibly the iOS agreement as well. So how do you feel about Alphabet's ability to maintain the unit economics with these partnerships in light of Microsoft's ambitions to increase its share of paid search? And Ruth, does this have any impact on your outlook for profitability of overall Alphabet over the long term?
+ - Source : GOOG's earning call transcript 2023-Q1
+   Snippet: Maybe one for Sundar and one for Ruth. Sundar, you got the cost question on learning language models into Search. Can you talk about revenues? I think, on one hand, you'll see better relevancy and maybe better results with higher conversion. But on the other hand, there might be fewer areas for ads or fewer queries because people get answers more quickly. Are you optimistic on that transition? Maybe give us your thoughts there.
+ - Source : GOOG's earning call transcript 2023-Q1
+   Snippet: I have one for Philipp and one for Ruth. Philipp, we're trying to get under the hood on Search advertising and trying to understand changes in demand between sellers of goods and sellers of services. Can you give us any help looking at the service side? Has demand returned back to pre-pandemic levels? And then in terms of goods and e-commerce, have you seen a slowing of demand? Anything you can help us kind of put this -- level set it back to maybe pre-pandemic levels to understand services versus goods demand?
+ - Source : GOOG's earning call transcript 2023-Q1
+   Snippet: And then for Ruth, on the terms of efficiency and being more diligent, how does the significantly higher cost of capital impact the way you're managing and evaluating the Other Bets assets? Anything there on how you may be rethinking some of the Other Bets? And what are you doing in changing some of the structures about the Other Bets assets?
+ - Source : GOOG's earning call transcript 2023-Q1
+   Snippet: Can I try 2 questions, please? I think, Philipp, you talked about kind of a more of a pullback in network ad revenue versus Search and YouTube. Do you have any thoughts on why that was the case?
+ - Source : GOOG's earning call transcript 2023-Q1
+   Snippet: And then Ruth, the Cloud business, even with the accounting changes, saw this very steady march towards profitability. You turned the corner now. You talked about growing the business for long-term profitability. But are there any reasons why we wouldn't -- why they shouldn't be sustainably profitable kind of starting from here as the business continues to scale? Or could it be that, that profitability could be wobbly for a while before it's sustainably profitable, that segment cloud?
+ - Source : GOOG's earning call transcript 2023-Q1
+   Snippet: Two for me as well. I guess, first, Sundar, the consolidation of the AI teams, I think you talked about that helping to accelerate innovation. So I'm curious, specifically with that consolidation, what are the product milestones that we should look out for related to that?
+ - Source : GOOG's earning call transcript 2023-Q1
+   Snippet: And then Philipp, regarding your comments on retail, specifically on shopping and payments, how should we think about that evolving across the platform this year? Maybe similarly, what are some milestones we should look out for on that front?
+ - Source : GOOG's earning call transcript 2022-Q4
+   Snippet: I have 2. The first one around AI and sort of the cost of AI. I appreciate all the color about all the AI tools that are to come. I guess, first question is, how should we think about the potential impact on CapEx, and the higher compute intensity of these AI tools to come potentially impacting margins over the next couple of years?
+ - Source : GOOG's earning call transcript 2022-Q4
+   Snippet: I have 2. For Sundar and Philipp, you both mentioned the NFL in your remarks and the opportunities it opens up. Can you comment and help us define what do you see is that longer-term opportunity? Why is it so critical to have the NFL? Is this the first of many sports deals to be had? So anything to just help us why this is so important to you.
+ - Source : GOOG's earning call transcript 2022-Q4
+   Snippet: And then just, Philipp, you've said in the past about the scaling of monetization, YouTube Shorts. What are the sticky factors? What's taking time to really bring advertisers on? And what are some of the things you've seen in terms that you've solved to make this a more quickly monetizable product?
+ - Source : GOOG's earning call transcript 2022-Q4
+   Snippet: One for Sundar and one for Ruth. For Sundar, can you just talk more about how you can bring the AI products to market with the principles and integrity that you talked about, and how you can do that without kind of sacrificing quality or trust along the way?
+ - Source : GOOG's earning call transcript 2022-Q4
+   Snippet: Maybe 2, if I could. Sundar, for you, continuing on the AI theme, how do you think philosophically about capturing the opportunity set that you see in front of you, given all the investments you've made over the last 5-plus years that we've been talking about going back to a lot of Google I/Os versus potentially disrupting the user experience or the monetization arc in your existing product set and striking the right balance between the opportunity set and being disruptive to yourself when you think about looking forward over the next couple of years?
+ - Source : GOOG's earning call transcript 2022-Q4
+   Snippet: Just digging into Search kind of low single-digit growth ex FX. Can you talk about the pressures there, volume versus pricing or CPCs? What's really driving the slowdown? It's kind of almost back to '09 recession levels. Just think about that. And then any signs that we're near a bottom? Any stabilization in growth rates you can talk about or how your outlook is for '23 on that?
+ - Source : GOOG's earning call transcript 2022-Q4
+   Snippet: Just a question on the hardware business. Pixel's doing quite well, but it seems like there have been issues around other areas with this inventory write-down. So could maybe you guys just talk about, in your mind, the strategic importance of having the wide range of hardware products that you have in that segment as it relates to your overall AI initiatives?
+ - Source : GOOG's earning call transcript 2022-Q4
+   Snippet: I'll just ask 1 question on, Ruth, you mentioned a couple of times getting Google Cloud to profitability. And just talk through how that gets done. You had almost 40% growth in Google Cloud. The operating loss level stayed about the same from '21 to '22, so the growth is there. What are the factors that need to be solved in order to get pretty nice profitability out of that segment sort of anywhere akin to what Azure and AWS have been able to show over the years?
+
+【Recall】: 0.0
+
+=========== Sample 15 ===========
+【Question】:
+ What is the outcome and feedback of  Performance Max in the past year for Alphabet?
+
+【Func Calls】:
+
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q2', '2023-Q3', '2023-Q1'], 'query': 'outcome of Performance Max, feedback of Performance Max', 'tickers': ['GOOG']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: We're very pleased with how Performance Max is performing. It gives advertisers really maximum performance across all inventory from, one, really AI-powered campaign, and it's probably the ultimate example of AI in action across our ads products. It's delivering excellent ROI. Those using it achieve like on average over 18% more conversions at a similar cost per action.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: Advertisers also tell us they want help creating high-quality ads that work in an instant. So we're rolling out a revamped asset creation flow in Performance Max that helps customers adapt and scale their most successful creative concepts in a few clicks.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: And Performance Max is an example of how all this comes together at scale for advertisers. They provide us with a business goal set of assets, and we can then take care of the rest to meet consumer demand and really deliver on advertiser ROI. And as you heard it at GML, we've seen over many quarters, we continue to build new AI features really on top of this.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: I think I talked a bit in my prepared remarks about where we're taking some of our products from a gen AI perspective. And if you take a look at some of the things we announced there, it's fair to say, whether you look at our revamped asset creation flow in Performance Max, whether you look at Automatically Created Assets, whether you look at Product Studio and so on, then we're on a right path to deliver some really exciting new innovation in automated -- let me call it, asset creation in the broader sense.
+ - Source : GOOG's earning call transcript 2023-Q1
+   Snippet: To then unlock Core Search further and maximize conversions across all of Google, we're actively helping more advertisers paired together with Performance Max. Advertisers who use PMax are, on average, achieving over 18% more conversions at a similar CPA. This is up 5 points in just 14 months, thanks to advances in the AI underlying bidding, creatives, search query matching and new formats like YouTube Shorts.
+
+【Recall】: 0.0
+
+=========== Sample 16 ===========
+【Question】:
+ What is the penetration of AI-powered search ads product in the existing advertisment client for Alphabet during the past two quarters?
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2023-Q2', '2023-Q3'], 'query': 'AI-powered search ads, search ads client', 'tickers': ['GOOG']}
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q2', '2023-Q3'], 'query': 'AI-powered search ads, search ads client', 'tickers': ['GOOG']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: Many understand the value, nearly 80% of our advertisers already use at least one AI-powered search ads product.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: In fact, today, nearly 80% of advertisers already use at least one AI-powered search ads product.
+
+【Recall】: 0.0
+
+=========== Sample 17 ===========
+【Question】:
+ Which prodcuts received positive feedback highlighted in the past alphabet earning call?
+
+【Func Calls】:
+
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q3'], 'query': 'customer feedback, positive feedback', 'tickers': ['GOOG']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: And yeah, we are hearing a lot of good feedback on, number one, our Ads AI Essentials, which are really helping to unlock the power of AI and to set up for durable ROI growth on the advertiser side. Those are products like the foundation for data and measurement. Think like Google Tag, Consent Mode and so on. And obviously, Search and PMax, we talked about it. And then all the Gen AI products, all those different ones. So there's a whole lot of interest in those products.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: We have learned a lot from people trying it, and we have added new capabilities like incorporating videos and images into responses and generating imagery. We have also made it easier to understand and debug generated code. Direct user feedback has been positive with strong growth in adoption.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: We have heard positive feedback from our partners at the NFL about the new features and live stream reliability. This is a clear example of our ability to execute big partnerships with excellence and at scale.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: We introduced our new Pixel 8, Pixel 8 Pro and Pixel Watch 2 to very positive consumer feedback and reviews.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: Product Studio is another launch from GML getting positive feedback in pilot mode.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: It starts with Search. And I've been pretty pleased with how the user feedback has been on SGE. We are rolling it out to more users.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: The great feedback we've gotten so far in the YouTube experience is very, very significant. People love the navigation. They love multi-view, they love the chats and the polls. And frankly, people are very happy with the lack of latency here. The #1 piece of concrete feedback the team has gotten is actually that people want the ability to pick their own games from multi-view, which is multi-view is the awesome feature we started rolling out on YouTube TV, that gives sense to the ability to basically watch multiple streams at once.
+
+【Recall】: 0.0
+
+=========== Sample 18 ===========
+【Question】:
+ Any efficency improvement on generative ai or large language model comments from amazon, alphabet, nvidia,meta earning call in the past two quarters?
+
+【Func Calls】:
+
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q2', '2023-Q3'], 'query': 'generative ai, model efficency, model cost', 'tickers': ['AMAZ', 'GOOG', 'NVDA', 'META']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : NVDA's earning call transcript 2024-Q3
+   Snippet: The H100 remains the top-performing and most versatile platform for AI training and by a wide margin, as shown in the latest MLPerf industry benchmark results. Our training cluster included more than 10,000 H100 GPUs or 3x more than in June, reflecting very efficient scaling. Efficient scaling is a key requirement in generative AI because LLMs are growing by an order of magnitude every year. Microsoft Azure achieved similar results on the nearly identical cluster, demonstrating the efficiency of NVIDIA AI in public cloud deployments.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: And of all the things I was proud about, when I looked at the strength of the work we have done across our infrastructure as a company, our technical infrastructure as a company, and at various given stages at a given moment in time, when we adopted new generations of technology, we've looked at the cost of it. But then the curves, the efficiency curves we have driven on top of it has always been phenomenal to see. And I see the current moment as no different.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: I'm proud of the engineering excellence underlying our progress. Since the May launch, we've boosted serving efficiency, reducing the time it takes to generate AI snapshots by half.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: We have made good progress in data center machine efficiency, which will pay dividends as we continue to invest in AI.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: But all the work we are doing on efficiency and optimization applies to on the AI side as well.
+ - Source : META's earning call transcript 2023-Q2
+   Snippet: The improvements also often come in the form of efficiency gains, which should hopefully allow us and others to run these models with less infrastructure investment going forward. So I'm really looking forward to seeing the improvements that the community makes to Llama 2.
+ - Source : META's earning call transcript 2023-Q2
+   Snippet: I would also hope to see efficiency improvements. I mean even from the initial Llama that was just released as a research project, some of the improvements are around things like quantization and being able to run the model way more efficiently.
+
+【Recall】: 0.0
+
+=========== Sample 19 ===========
+【Question】:
+ how is the growth of youtube subscription for alphabet?
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2023-Q3'], 'query': 'growth of youtube, youtube subscription', 'tickers': ['GOOG']}
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q3'], 'query': 'growth of youtube, youtube subscription', 'tickers': ['GOOG']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : https://www.sec.gov/Archives/edgar/data/1652044/000165204423000094/goog-20230930.htm
+   Snippet: Google other revenues increased $1.4 billion and $3.6 billion from the three and nine months ended September 30, 2022 to the three and nine months ended September 30, 2023, primarily driven by growth in YouTube non-advertising, largely due to an increase in paid subscribers.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: Turning next to YouTube, which saw solid momentum in both its ads and subscription businesses in Q3.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: We continue to work on closing the monetization gap here. Shorts now average over 70 billion daily views and are watched by over 2 billion signed-in users every month
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: Google other revenues were up 21% year-on-year led by strong growth in YouTube subscription revenues.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: we continue to be the #1 overall streaming destination according to Nielsen. 150 million-plus people are watching YouTube on CTV screens every month in the U.S.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: We are very pleased with our financial results for the third quarter, driven by meaningful growth in Search in YouTube and Momentum in Cloud.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: Search remained the largest contributor to revenue growth. In terms of expenses, total cost of revenues was $33.2 billion, up 7%, primarily reflecting other cost of revenues of $20.6 billion, which was up 6%. Growth here was primarily driven by content acquisition costs mainly for YouTube subscription offerings.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: Other revenues were $8.3 billion, up 21%, primarily reflecting growth in YouTube nonadvertising revenues driven by subscriber growth in YouTube TV followed by YouTube Music Premium.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: In our YouTube subscription products the substantial growth in revenues primarily reflects subscriber growth. Looking ahead, a full quarter of NFL Sunday Ticket revenues as well as associated content acquisition costs will be reflected in Q4 results compared to only a few weeks in the third quarter.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: I think, in the broader context, you have to look at it as an overall YouTube subscription strategy. The great feedback we've gotten so far in the YouTube experience is very, very significant. People love the navigation. They love multi-view, they love the chats and the polls. And frankly, people are very happy with the lack of latency here. The #1 piece of concrete feedback the team has gotten is actually that people want the ability to pick their own games from multi-view, which is multi-view is the awesome feature we started rolling out on YouTube TV, that gives sense to the ability to basically watch multiple streams at once. And yes, overall, the teams are working hard to build a fantastic experience, and we are really trying to stay focused on getting our first season right and providing the best possible experience really for fans here.
+
+【Recall】: 0.0
+
+=========== Sample 20 ===========
+【Question】:
+ Did alphabet disclose DAU or MAU of Youtube shorts in the recent three quarters?
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2023-Q1', '2023-Q2', '2023-Q3'], 'query': 'monthely average user of youtube shorts, daily average user of youtube shorts, shorts user growth', 'tickers': ['GOOG']}
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q1', '2023-Q2', '2023-Q3'], 'query': 'monthely average user of youtube shorts, daily average user of youtube shorts, shorts user growth', 'tickers': ['GOOG']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: YouTube Shorts are now watched by over 2 billion logged in users every month, up from 1.5 billion just one year ago.
+
+【Recall】: 0.0
+
+=========== Sample 21 ===========
+【Question】:
+ What is the percentage of the Chinese market in the total revenue of Nvidia?
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2024-Q3'], 'query': 'Chinese market segment, revenue from China', 'tickers': ['NVDA']}
+ - Function: search_earning_calls
+   Params  : {'periods': ['2024-Q3'], 'query': 'Chinese market segment, revenue from China', 'tickers': ['NVDA']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : NVDA's earning call transcript 2024-Q3
+   Snippet: Our sales to China and other affected destinations derived from products that are now subject to licensing requirements have consistently contributed approximately 20% to 25% of Data Center revenue over the past few quarters.
+ - Source : NVDA's earning call transcript 2024-Q3
+   Snippet: Vivek, on export controls and the impact that we are seeing in our Q4 outlook and guidance that we provided. We had seen historically over the last several quarters that China and some of the other impacted destinations to be about 20% to 25% of our Data Center revenue.
+
+【Recall】: 0.0
+
+=========== Sample 22 ===========
+【Question】:
+ what is the demand growth for nvidia InfiniBand ?
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2024-Q3'], 'query': 'demand growth of infiniband, infiniband growth, demand of inifiband', 'tickers': ['NVDA']}
+ - Function: search_earning_calls
+   Params  : {'periods': ['2024-Q3'], 'query': 'demand growth of infiniband, infiniband growth, demand of inifiband', 'tickers': ['NVDA']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : NVDA's earning call transcript 2024-Q3
+   Snippet: Strong growth was driven by exceptional demand for InfiniBand, which grew fivefold year-on-year.
+
+【Recall】: 0.0
+
+=========== Sample 23 ===========
+【Question】:
+ If newly designed complied product could offset the reduction in revenue of the Chinese market for Nvidia?
+
+【Func Calls】:
+
+ - Function: search_earning_calls
+   Params  : {'periods': ['2024-Q3'], 'query': 'complied product,  Chinse market loss, revenue reduction, offset loss', 'tickers': ['NVDA']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : NVDA's earning call transcript 2024-Q3
+   Snippet: These products, they may become available in the next coming months; however, we don't expect their contribution to be material or meaningful as a percentage of the revenue in Q4.
+
+【Recall】: 0.0
+
+=========== Sample 24 ===========
+【Question】:
+ How did Nvidia explain the differentiation between Infiniband with traditional Ethernet?
+
+【Func Calls】:
+
+ - Function: search_earning_calls
+   Params  : {'periods': ['2020-Q1', '2020-Q2', '2020-Q3', '2020-Q4', '2021-Q1', '2021-Q2', '2021-Q3', '2021-Q4', '2022-Q1', '2022-Q2', '2022-Q3', '2022-Q4', '2023-Q1', '2023-Q2', '2023-Q3'], 'query': 'differentiation of infiniband and ethernet, difference bewteen infiniband and ethernet', 'tickers': ['NVDA']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : NVDA's earning call transcript 2024-Q3
+   Snippet: The vast majority of the dedicated large-scale AI factories standardize on InfiniBand, and the reason for that is not only because of its data rate and not only just the latency, but the way that it moves traffic around the network is really important. The way that you process AI and a multi-tenant hyperscale Ethernet environment, the traffic pattern is just radically different. And with InfiniBand and with software-defined networks, we can do congestion control, adaptive routing, performance isolation and noise isolation, not to mention, of course, the data rate and the low latency and the very low overhead of InfiniBand that's a natural part of InfiniBand. And so, InfiniBand is not so much just a network. It's also a computing fabric.
+ - Source : NVDA's earning call transcript 2024-Q3
+   Snippet: We put a lot of software-defined capabilities into the fabric, including computation. We'll do 40-point calculations and computation right on the switch and right in the fabric itself. And so, that's the reason why that difference in Ethernet versus InfiniBand, where InfiniBand versus Ethernet for AI factories is so dramatic. And the difference is profound, and the reason for that is because you've just invested in a $2 billion infrastructure for AI factories. A 20%, 25%, 30% difference in overall effectiveness, especially as you scale up is measured in hundreds of millions of dollars of value. And if you were renting that infrastructure over the course of four to five years, it really, really adds up. And so, InfiniBand's value proposition is undeniable for AI factories.
+
+【Recall】: 0.0
+
+=========== Sample 25 ===========
+【Question】:
+ What did Nvidia elaborate the competitive edge of Grace Hopper?
+
+【Func Calls】:
+
+ - Function: search_earning_calls
+   Params  : {'periods': ['2020-Q1', '2020-Q2', '2020-Q3', '2020-Q4', '2021-Q1', '2021-Q2', '2021-Q3', '2021-Q4', '2022-Q1', '2022-Q2', '2022-Q3', '2022-Q4', '2023-Q1', '2023-Q2', '2023-Q3'], 'query': 'Grace Hopper advantage, competitive edge of Grace Hopper', 'tickers': ['NVDA']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : NVDA's earning call transcript 2024-Q3
+   Snippet: The capability of Grace Hopper is really quite spectacular. It has the ability to create computing nodes that simultaneously has a very fast memory as well as very large memory in the areas of vector databases or semantic search, what is called RAG, retrieval augmented generation, so that you could have a generative AI model, be able to refer to proprietary data or factual data before it generates a response. That data is quite large, and you could also have applications or generative models where the context length is very high. You basically stored an entire book into its system memory before you ask your questions, and so the context length could be quite large. This way, the generative models have the ability to still be able to naturally interact with you, on one hand. On the other hand, be able to refer to factual data, proprietary data, or domain-specific data, your data and be contextually relevant, and reduce hallucination. And so, that particular use case, for example, is really quite fantastic for Grace Hopper.
+
+【Recall】: 0.0
+
+=========== Sample 26 ===========
+【Question】:
+ What was the purpose of setting up AI foundry for Nvidia?
+
+【Func Calls】:
+
+ - Function: search_earning_calls
+   Params  : {'periods': ['2020-Q1', '2020-Q2', '2020-Q3', '2020-Q4', '2021-Q1', '2021-Q2', '2021-Q3', '2021-Q4', '2022-Q1', '2022-Q2', '2022-Q3', '2022-Q4', '2023-Q1', '2023-Q2', '2023-Q3'], 'query': 'AI foundry, purpose of AI foundry', 'tickers': ['NVDA']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : NVDA's earning call transcript 2024-Q3
+   Snippet: There's also proprietary AI, because the software companies like ServiceNow and SAP and there are many, many others, can't afford to have their company's intelligence be outsourced to somebody else. And they are about building tools, and on top of their tools, they should build custom and proprietary and domain-specific co-pilots and assistants that they can then rent to their customer base. They're sitting on a gold mine. Almost every major tools company in the world is sitting on a gold mine, and they recognize that. They have to go build their own custom AIs. We have a new service called an AI foundry, where we leverage MVF capabilities to be able to serve them in that.
+ - Source : NVDA's earning call transcript 2024-Q3
+   Snippet: Toshiya, thanks for the question. There is a glaring opportunity in the world for AI foundry, and it makes so much sense. First, every company has its core intelligence. It makes up our company, our data, our domain expertise. In the case of many companies we create tools, and most of the software companies in the world are tool platforms, and those tools are used by people today. And in the future, it's going to be used by people augmented with a whole bunch of AIs that we hire. And these AI platforms just got to go across the world and you'll see, and we've already announced a few, SAP, ServiceNow, Dropbox, Getty, many others are coming. And the reason for that is because they have their own proprietary AI. They want their own proprietary AI. They can't afford to outsource their intelligence and hand out their data and hand out their flywheel for other companies to build the AI for them. And so, they come to us.
+ - Source : NVDA's earning call transcript 2024-Q3
+   Snippet: We have several things that are really essential in a foundry. Just as TSMC is a foundry, you have to have AI technology. And as you know, we have just an incredible depth of AI technology capability.
+ - Source : NVDA's earning call transcript 2024-Q3
+   Snippet: And then, second, you have to have the best practice, known practice, the skills of processing data through the invention of AI models to create AIs that are guardrails fine-tuned, so on, so forth, that are safe so on, so forth. And the third thing is you need factories, and that's what DGX Cloud is. Our AI models are called AI Foundations. Our process, if you will, our CAD system for creating AIs are called NeMo, and they run on NVIDIA's factories we call DGX Cloud.
+
+【Recall】: 0.0
+
+=========== Sample 27 ===========
+【Question】:
+ what did managment team of amazon say about their reason to invest anthropic?
+
+【Func Calls】:
+
+ - Function: search_earning_calls
+   Params  : {'periods': ['2020-Q1', '2020-Q2', '2020-Q3', '2020-Q4', '2021-Q1', '2021-Q2', '2021-Q3', '2021-Q4', '2022-Q1', '2022-Q2', '2022-Q3', '2022-Q4', '2023-Q1', '2023-Q2', '2023-Q3'], 'query': 'reason of invest Anthropic, Anthropic investment', 'tickers': ['AMZN']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : AMZN's earning call transcript 2023-Q3
+   Snippet: Recently, we announced that leading LLM maker Anthropic chose AWS as its primary cloud provider and will use Trainium and Inferentia to build, train and deploy its future LLMs. As part of this partnership, AWS and Anthropic will collaborate on the future development of Trainium and Inferentia technology. We believe this collaboration will be helpful in continuing to accelerate the price performance advantages that Trainium and Inferentia deliver for customers.
+
+【Recall】: 0.0
+
+=========== Sample 28 ===========
+【Question】:
+ Did alphabet, amazon, microsoft changed their accounting policy in the last year?
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2022-Q4', '2023-Q1', '2023-Q2', '2023-Q3'], 'query': 'change in accounting, accounting estimate', 'tickers': ['AMAZ', 'GOOG', 'MSFT']}
+ - Function: search_earning_calls
+   Params  : {'periods': ['2022-Q4', '2023-Q1', '2023-Q2', '2023-Q3'], 'query': 'change in accounting, accounting estimate', 'tickers': ['AMAZ', 'GOOG', 'MSFT']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000095017023035122/msft-20230630.htm
+   Snippet: In July 2022, we completed an assessment of the useful lives of our server and network equipment. Due to investments in software that increased efficiencies in how we operate our server and network equipment, as well as advances in technology, we determined we should increase the estimated useful lives of both server and network equipment from four years to six years. This change in accounting estimate was effective beginning fiscal year 2023. Based on the carrying amount of server and network equipment included in property and equipment, net as of June 30, 2022, the effect of this change in estimate for fiscal year 2023 was an increase in operating income of $3.7 billion and net income of $3.0 billion, or $0.40 per both basic and diluted share.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000095017023035122/msft-20230630.htm
+   Snippet: In July 2022, we completed an assessment of the useful lives of our server and network equipment. Due to investments in software that increased efficiencies in how we operate our server and network equipment, as well as advances in technology, we determined we should increase the estimated useful lives of both server and network equipment from four years to six years. This change in accounting estimate was F93effective beginning fiscal year 2023. Based on the carrying amount of server and network equipment included in property and equipment, net as of June 30, 2022, the effect of this change in estimate for fiscal year 2023 was an increase in operating income of $3.7 billion and net income of $3.0 billion, or $0.40 per both basic and diluted share.
+ - Source : https://www.sec.gov/Archives/edgar/data/1652044/000165204423000094/goog-20230930.htm
+   Snippet: In January 2023, we completed an assessment of the useful lives of our servers and network equipment and adjusted the estimated useful life of our servers from four years to six years and the estimated useful life of certain network equipment from five years to six years. This change in accounting estimate was effective beginning in fiscal year 2023. Based on the carrying value of servers and certain network equipment as of December 31, 2022, and those placed in service during the nine months ended September 30, 2023, the effect of this change in estimate was a reduction in depreciation expense of $977 million and $2.9 billion and an increase in net income of $761 million and $2.3 billion, or $0.06 and $0.18 per basic and $0.06 and $0.18 per diluted share, for the three and nine months ended September 30, 2023, respectively.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000095017023014423/msft-20230331.htm
+   Snippet: In July 2022, we completed an assessment of the useful lives of our server and network equipment. Due to investments in software that increased efficiencies in how we operate our server and network equipment, as well as advances in technology, we determined we should increase the estimated useful lives of both server and network equipment from four years to six years. This change in accounting estimate was effective beginning fiscal year 2023. Based on the carrying amount of server and network equipment included in property and equipment, net as of June 30, 2022, the effect of this change in estimate for the three months ended March 31, 2023 was an increase in operating income of $885 million and net income of $720 million, or $0.10 per both basic and diluted share. The effect of this change for the nine months ended March 31, 2023 was an increase in operating income of $2.9 billion and net income of $2.3 billion, or $0.32 and $0.31 per basic and diluted share, respectively.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000095017023014423/msft-20230331.htm
+   Snippet: In July 2022, we completed an assessment of the useful lives of our server and network equipment. Due to investments in software that increased efficiencies in how we operate our server and network equipment, as well as advances in technology, we determined we should increase the estimated useful lives of both server and network equipment from four years to six years. This change in accounting estimate was effective beginning fiscal year 2023. Based on the carrying amount of server and network equipment included in property and equipment, net as of June 30, 2022, the effect of this change in estimate for the three months ended March 31, 2023 was an increase in operating income of $885 million and net income of $720 million, or $0.10 per both basic and diluted share. The effect of this change for the nine months ended March 31, 2023 was an increase in operating income of $2.9 billion and net income of $2.3 billion, or $0.32 and $0.31 per basic and diluted share, respectively. It is estimated this change will increase our fiscal year 2023 annual operating income by $3.7 billion.
+ - Source : https://www.sec.gov/Archives/edgar/data/1652044/000165204423000070/goog-20230630.htm
+   Snippet: Change in Accounting Estimate
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459023000733/msft-10q_20221231.htm
+   Snippet: In July 2022, we completed an assessment of the useful lives of our server and network equipment. Due to investments in software that increased efficiencies in how we operate our server and network equipment, as well as advances in technology, we determined we should increase the estimated useful lives of both server and network equipment from four years to six years. This change in accounting estimate was effective beginning fiscal year 2023. Based on the carrying amount of server and network equipment included in property and equipment, net as of June 30, 2022, the effect of this change in estimate for the three months ended December 31, 2022 was an increase in operating income of $945 million and net income of $768 million, or $0.10 per both basic and diluted share. The effect of this change for the six months ended December 31, 2022 was an increase in operating income of $2.0 billion and net income of $1.6 billion, or $0.22 per both basic and diluted share.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459023000733/msft-10q_20221231.htm
+   Snippet: In July 2022, we completed an assessment of the useful lives of our server and network equipment. Due to investments in software that increased efficiencies in how we operate our server and network equipment, as well as advances in technology, we determined we should increase the estimated useful lives of both server and network equipment from four years to six years. This change in accounting estimate was effective beginning fiscal year 2023. Based on the carrying amount of server and network equipment included in property and equipment, net as of June 30, 2022, the effect of this change in estimate for the three months ended December 31, 2022 was an increase in operating income of $945 million and net income of $768 million, or $0.10 per both basic and diluted share. The effect of this change for the six months ended December 31, 2022 was an increase in operating income of $2.0 billion and net income of $1.6 billion, or $0.22 per both basic and diluted share. It is estimated this change will increase our fiscal year 2023 annual operating income by $3.7 billion.
+ - Source : https://www.sec.gov/Archives/edgar/data/1652044/000165204423000045/goog-20230331.htm
+   Snippet: In January 2023, we completed an assessment of the useful lives of our servers and network equipment and adjusted the estimated useful life of our servers from four years to six years and the estimated useful life of certain network equipment from five years to six years. This change in accounting estimate was effective beginning in fiscal year 2023. Based on the carrying value of servers and certain network equipment as of December 31, 2022, and those placed in service during the quarter ended March 31, 2023, the effect of this change in estimate was a reduction in depreciation expense of $988 million and an increase in net income of $770 million, or $0.06 per basic and $0.06 per diluted share, for the three months ended March 31, 2023.
+ - Source : https://www.sec.gov/Archives/edgar/data/1652044/000165204423000016/goog-20221231.htm
+   Snippet: In January 2023, we completed an assessment of the useful lives of our servers and network equipment and adjusted the estimated useful life of our servers from four years to six years and the estimated useful life of certain network equipment from five years to six years. This change in accounting estimate is effective beginning in fiscal year 2023.
+ - Source : https://www.sec.gov/Archives/edgar/data/1652044/000165204423000016/goog-20221231.htm
+   Snippet: In January 2023, we completed an assessment of the useful lives of our servers and network equipment, resulting in a change in the estimated useful life of our servers and certain network equipment to six years, which we expect to result in a reduction of depreciation of approximately $3.4 billion for the full fiscal year 2023 for assets in service as of December 31, 2022, recorded primarily in cost of revenues and R&D expenses. See Note 1 of the Notes to Consolidated Financial Statements included in Item 8 of this Annual Report on Form 10-K for information relating to the useful lives of our servers and network equipment.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: As noted in our earnings release, the overall increase in data center and other operations costs was partially offset by a reduction in depreciation expense due to the change in estimated useful lives we made starting in the first quarter of the year.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: As noted in our earnings release, the overall increase in data center and other operations costs was partially offset by a reduction in depreciation expense due to the change in estimated useful lives we discussed last quarter.
+ - Source : GOOG's earning call transcript 2023-Q1
+   Snippet: There was also a $988 million benefit from lower depreciation due to the change in useful lives, but that obviously is an ongoing benefit.
+ - Source : GOOG's earning call transcript 2023-Q1
+   Snippet: Second, the adjustment we made to the estimated useful lives of servers and certain network equipment at the beginning of 2023. As you can see in our earnings release, the effect for the first quarter was a reduction in depreciation expense of $988 million.
+ - Source : GOOG's earning call transcript 2022-Q4
+   Snippet: I will point you to our earnings release in which we noted that we adjusted the estimated useful lives of servers and certain network equipment starting in Q1 '23. We expect these changes will favorably impact our 2023 operating results by approximately $3.4 billion for assets and service as of year-end 2022.
+
+【Recall】: 0.0
+
+=========== Sample 29 ===========
+【Question】:
+ What was AI service revenue contribute to the Azure for Microsoft in the past three quarters?
+
+【Func Calls】:
+
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q3', '2023-Q4', '2024-Q1'], 'query': 'AI service, AI service contribution to growth, drive by AI service', 'tickers': ['MSFT']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : MSFT's earning call transcript 2024-Q1
+   Snippet: Azure and other cloud services revenue grew 29% and 28% in constant currency, including roughly 3 points from AI services.
+ - Source : MSFT's earning call transcript 2023-Q4
+   Snippet: Azure and other cloud services revenue grew 26% and 27% in constant currency, including roughly 1 point from AI services, as expected.
+ - Source : MSFT's earning call transcript 2023-Q3
+   Snippet: In Azure, we expect revenue growth to be 26% to 27% in constant currency, including roughly 1 point from AI services
+
+【Recall】: 0.0
+
+=========== Sample 30 ===========
+【Question】:
+ Did amazon, alphabet or microsoft comment the IT spending from their customers in the past year?
+
+【Func Calls】:
+
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q3', '2023-Q2', '2023-Q1', '2022-Q4'], 'query': 'IT spending, spend', 'tickers': ['AMAZ', 'GOOG', 'MSFT']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : MSFT's earning call transcript 2023-Q4
+   Snippet: We're also partnering broadly to scale this next generation of AI to more customers. Snowflake, for example, will increase its Azure spend as it builds new integrations with Azure OpenAI. And KPMG has announced a multibillion-dollar commitment to our cloud and AI services to transform professional services.
+ - Source : AMZN's earning call transcript 2023-Q3
+   Snippet: Even if you look during optimization times in this difficult economy, customers have really noticed how AWS leaned in with them for the long term. And I think that matters to customers. And then we have a $92 billion revenue run rate business where 90% of the global IT spend still resides on premises. And if you believe like we do, that equation is going to flip. There's a lot more there for us.
+ - Source : AMZN's earning call transcript 2023-Q3
+   Snippet: I mean now you have to get perspective. My perspective is that the cloud is still in the early stages. If you think about 90% plus of the global IT spend being on-premises, where I think that equation is going to flip in 10 years.
+ - Source : AMZN's earning call transcript 2023-Q3
+   Snippet: That got stalled in 2023 because companies were being more conservative with their spend and wary of an uncertain economy. And so I think that what you'll see increasingly is that companies will both go back to those transformations they were planning on making and working with a lot of systems integrator partners as well as ourselves as well as start to see the production in large scale of the generative AI applications that they're all working on and prototyping and starting to deploy into production.
+ - Source : GOOG's earning call transcript 2023-Q3
+   Snippet: On Cloud, maybe what I would say is, overall, we had definitely started seeing customers looking to optimize spend. We leaned into it to help customers given some of the challenges they were facing. And so that was a factor. But we are definitely seeing a lot of interest in AI. There are many, many projects underway now. Just on Vertex alone, the number of projects grew over 7x. And so we see signs of stabilization, and I'm optimistic about what's ahead.
+ - Source : MSFT's earning call transcript 2023-Q3
+   Snippet: First is optimizations do continue. In fact, we are focused on it. We incent our people to help our customers with optimization because we believe, in the long run, that's the best way to secure the loyalty and long-term contracts with customers when they know that they can count on a cloud provider like us to help them continuously optimize their workload.
+ - Source : AMZN's earning call transcript 2023-Q2
+   Snippet: As the economy has been uncertain over the last year, AWS customers have needed assistance cost optimizing to withstand this challenging time and reallocate spend to newer initiatives that better drive growth. We've proactively helped customers do this. And while customers have continued to optimize during the second quarter, we've started seeing more customers shift their focus towards driving innovation and bringing new workloads to the cloud. As a result, we've seen AWS' revenue growth rate stabilize during Q2 where we've reported 12% year-over-year growth.
+ - Source : AMZN's earning call transcript 2023-Q2
+   Snippet: And when customers start to -- that cost optimization work, they can take some of their spend down for a while as they do that, and we help them do that and has been part of our DNA ever since we started AWS.
+ - Source : AMZN's earning call transcript 2023-Q2
+   Snippet: there's a lot of new functionality coming out with -- and there's a lot of spend that will be in this area for all the great solutions that are out there for generative AI and large language models as well as machine learning solutions that we've always had for customers. So optimistic and starting to see some good traction with our customers' new volumes.
+ - Source : GOOG's earning call transcript 2023-Q2
+   Snippet: Turning to the Google Cloud segment. Revenues were $8 billion for the quarter, up 28%. GCP revenue growth remained strong across geographies, industries and products. That being said, we saw a continued moderation in the rate of consumption growth as consumers optimize their spend.
+ - Source : MSFT's earning call transcript 2023-Q2
+   Snippet: Just as we saw customers accelerate their digital spend during the pandemic, we are now seeing them optimize that spend.
+ - Source : MSFT's earning call transcript 2023-Q2
+   Snippet: In this environment, we remain convicted on 3 things. This is an important time for Microsoft to work with our customers, helping them realize more value from their tech spend and building long-term loyalty and share position while internally aligning our own cost structure with our revenue growth. This, in turn, sets us up to participate in the secular trend where digital spend as a percentage of GDP is only going to increase. And lastly, we're going to lead in the AI era, knowing that maximum enterprise value gets created during platform shifts.
+ - Source : MSFT's earning call transcript 2023-Q2
+   Snippet: While customers are more cautious in their spend, we also have the opportunity to improve our execution, given our strong position in global growth markets. In commercial bookings, with a declining expiry base and the strong prior year comparable in terms of large Azure contracts, we expect growth to be relatively flat year-over-year.
+ - Source : MSFT's earning call transcript 2023-Q2
+   Snippet: What we see is optimization and some cautious approach to new workloads and that will cycle through, but we do fundamentally believe on a long-term basis, as a percentage of GDP, tech spend is going to go up.
+ - Source : AMZN's earning call transcript 2023-Q1
+   Snippet: Across the geographies we serve, customers appreciate our focus on staying sharp on pricing, having strong selection and easier convenience, including delivery speeds, which continued to improve throughout the first quarter. That said, the uncertain economic environment and ongoing inflationary pressures continue to be a factor, and we believe it's continuing to drive cautious spending across consumers. This means our customers are looking to stretch their budgets further and are focused on value.
+ - Source : AMZN's earning call transcript 2023-Q1
+   Snippet: As expected, customers continue to evaluate ways to optimize their cloud spending in response to these tough economic conditions in the first quarter. And we are seeing these optimizations continue into the second quarter with April revenue growth rates about 500 basis points lower than what we saw in Q1.
+ - Source : AMZN's earning call transcript 2023-Q1
+   Snippet: In AWS, what we're seeing is enterprises continuing to be cautious in their spending in this uncertain time. Customers are looking for ways to save money however they can right now. They tell us that most of it is cost optimizing versus cost cutting, which is an interesting distinction because they say they're cost optimizing to reallocate those resources on new customer experiences. One of the great attributes of the cloud is that you can scale seamlessly up or down as demand dictates, which is not the case with on-premises infrastructure.
+ - Source : AMZN's earning call transcript 2023-Q1
+   Snippet: Customers want help finding ways to spend less during this challenging time, and given that it's best for customers long term, we've been actively helping customers make these adjustments.
+ - Source : AMZN's earning call transcript 2023-Q1
+   Snippet: The new customer pipeline looks strong. The set of ongoing migrations of workloads to AWS is strong. The product innovation and delivery is rapid and compelling, and people sometimes forget that 90-plus percent of global IT spend is still on-premises. If you believe that equation is going to flip, which we do, it's going to move to the cloud and having the cloud infrastructure offering with the broadest functionality by a fair bit, the best security and operational performance and the largest partner ecosystem bodes well for us moving forward.
+ - Source : AMZN's earning call transcript 2023-Q1
+   Snippet: I think it's important to remember that customers are pretty explicitly telling us that this is not a cost-cutting effort where we intend on spending less money on technology or on the cloud. This is our reprioritizing what matters most to our business at this time and trying to reallocate resource so we can build new customer experience of the change what's possible.
+ - Source : AMZN's earning call transcript 2023-Q1
+   Snippet: I think it's important to remember that there's still so much growth ahead of the cloud, 90-plus percent of the global IT spend is on premises. And so if you believe that equation is going to flip, it's mostly moving to the cloud.
+ - Source : AMZN's earning call transcript 2023-Q1
+   Snippet: The reality, by the way, is that most people are spending most of their time and money on the training. But as these models graduate to production, where they're in the apps, all the spend is going to be in inference. So they both matter a lot.
+ - Source : AMZN's earning call transcript 2022-Q4
+   Snippet: We've seen that during periods of economic uncertainty, consumers are very careful about how they allocate their resources and where they choose to spend their money.
+ - Source : AMZN's earning call transcript 2022-Q4
+   Snippet: Starting back in the middle of the third quarter of 2022, we saw our year-over-year growth rates slow as enterprises of all sizes evaluated ways to optimize their cloud spending in response to the tough macroeconomic conditions. As expected, these optimization efforts continued into the fourth quarter.
+ - Source : AMZN's earning call transcript 2022-Q4
+   Snippet: Our customers are looking for ways to save money, and we spend a lot of our time trying to help them do so.
+ - Source : AMZN's earning call transcript 2022-Q4
+   Snippet: I think pricing being sharp is always important. But particularly in this type of uncertain economy, where customers are very conscious about how much they're spending, having the millions of deals that we put together with our selling partners in the fourth quarter was an important part of the demand that you saw, and we'll continue to work really hard on being sharp on pricing.
+ - Source : AMZN's earning call transcript 2022-Q4
+   Snippet: So I think it's also useful to remember that 90% to 95% of the global IT spend remains on-premises. And if you believe that, that equation is going to shift and flip, I don't think on-premises will ever go away, but I really do believe in the next 10 to 15 years that most of it will be in the cloud if we continue to have the best customer experience, which we have to work really hard at an event which we're working to do. It means we have a lot of growth in front of us in the AWS business.
+ - Source : GOOG's earning call transcript 2022-Q4
+   Snippet: It's clear that after a period of significant acceleration in digital spending during the pandemic, the macroeconomic climate has become more challenging.
+
+【Recall】: 0.0
+
+=========== Sample 31 ===========
+【Question】:
+ what were microsoft 365 subscriber number changes over the past year
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2024-Q1', '2023-Q4', '2023-Q3', '2O23-Q2'], 'query': 'subscriber, subscription, Microsoft 365 subscriber', 'tickers': ['MSFT']}
+ - Function: search_earning_calls
+   Params  : {'periods': ['2024-Q1', '2023-Q4', '2023-Q3', '2O23-Q2'], 'query': 'subscriber, subscription, Microsoft 365 subscriber', 'tickers': ['MSFT']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000095017023054855/msft-20230930.htm
+   Snippet: Office Consumer products and cloud services revenue increased $44 million or 3%. Microsoft 365 Consumer subscribers grew 18% to 76.7 million.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000095017023035122/msft-20230630.htm
+   Snippet: Office Consumer products and cloud services revenue increased 2% and Microsoft 365 Consumer subscribers increased to 67.0 million.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000095017023035122/msft-20230630.htm
+   Snippet: Office Consumer products and cloud services revenue increased $140 million or 2%. Microsoft 365 Consumer subscribers grew 12% to 67.0 million.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000095017023014423/msft-20230331.htm
+   Snippet: Office Consumer products and cloud services revenue increased $20 million or 1%. Microsoft 365 Consumer subscribers grew 12% to 65.4 million.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000095017023014423/msft-20230331.htm
+   Snippet: Office Consumer products and cloud services revenue increased 1% and Microsoft 365 Consumer subscribers increased to 65.4 million.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459023000733/msft-10q_20221231.htm
+   Snippet: Office Consumer products and cloud services revenue decreased $39 million or 2%. Microsoft 365 Consumer subscribers grew 12% to 63.2 million.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459023000733/msft-10q_20221231.htm
+   Snippet: Office Consumer products and cloud services revenue decreased 2% and Microsoft 365 Consumer subscribers increased to 63.2 million.
+ - Source : MSFT's earning call transcript 2024-Q1
+   Snippet: Office Commercial licensing declined 17%, in line with the continued customer shift to cloud offerings. Office Consumer revenue increased 3% and 4% in constant currency with continued momentum in Microsoft 365 subscriptions, which grew 18% to $76.7 million.
+ - Source : MSFT's earning call transcript 2024-Q1
+   Snippet: In Office Consumer, we expect revenue growth in the mid-single digits, driven by Microsoft 365 subscriptions.
+ - Source : MSFT's earning call transcript 2023-Q4
+   Snippet: In Office Consumer, we expect revenue growth to be in the low to mid-single digits, driven by Microsoft 365 subscriptions.
+ - Source : MSFT's earning call transcript 2023-Q4
+   Snippet: Office Consumer revenue increased 3% and 6% in constant currency with continued momentum in Microsoft 365 subscriptions, which grew 12% to $67 million.
+ - Source : MSFT's earning call transcript 2023-Q3
+   Snippet: Office consumer revenue increased 1% and 4% in constant currency with continued momentum at Microsoft 365 subscriptions, which grew 12% to 65.4 million.
+ - Source : MSFT's earning call transcript 2023-Q3
+   Snippet: In our on-premises business, we expect revenue to decline in the low 30s. In Office Consumer, we expect revenue growth in the mid-single digits, driven by Microsoft 365 subscriptions.
+ - Source : MSFT's earning call transcript 2023-Q2
+   Snippet: We have more than 63 million consumer subscribers, up 12% year-over-year, and we introduced Microsoft 365 Basic, bringing our premium offerings to more people.
+
+【Recall】: 0.0
+
+=========== Sample 32 ===========
+【Question】:
+ 
+what did microsoft explain the reason why they acquired about nuance communication?
+
+【Func Calls】:
+
+ - Function: search_earning_calls
+   Params  : {'periods': ['2020-Q1', '2020-Q2', '2020-Q3', '2020-Q4', '2021-Q1', '2021-Q2', '2021-Q3', '2021-Q4', '2022-Q1', '2022-Q2', '2022-Q3', '2022-Q4', '2023-Q1', '2023-Q2', '2023-Q3'], 'query': 'Nuancce, acquisition', 'tickers': ['MSFT']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : MSFT's earning call transcript 2023-Q4
+   Snippet: And in health care, hundreds of organizations are using our Nuance DAX ambient intelligence solution to automatically document patient encounters at the point of care.
+ - Source : MSFT's earning call transcript 2023-Q3
+   Snippet: Our Cloud for Healthcare was front and center at HIMSS last week as we expanded our offerings for payers and added new AI-powered capabilities for providers. We showcased the first fully AI-automated clinical documentation application, Nuance DAX Express, which will bring GPT-4 to more than 550,000 existing users of Dragon Medical.
+ - Source : MSFT's earning call transcript 2023-Q2
+   Snippet: And in health care, we are rapidly becoming the partner of choice for any provider looking to generate real value from AI, with Nuance DAX ambient intelligence solution, physicians can reduce documentation time by half, improving the quality of their patient interactions.
+ - Source : MSFT's earning call transcript 2022-Q4
+   Snippet: Our new Microsoft Digital Contact Center Platform brings together Dynamics 365, Microsoft Teams as well as enterprise AI capabilities from Nuance to help customers like HP deliver omnichannel customer engagement.
+ - Source : MSFT's earning call transcript 2022-Q3
+   Snippet: Our Cloud for Healthcare was front and center at HIMSS last month, where we introduced Azure Health Data Services to unify disparate clinical imaging and med tech data. Cleveland Clinic will use the solution to normalize data from different systems and integrate insights into the clinician workflow. And with our acquisition of Nuance, I'm excited about our opportunity to apply the company's deep enterprise AI expertise to accelerate the growth of both Nuance's business and our industry clouds.
+ - Source : MSFT's earning call transcript 2021-Q3
+   Snippet: Thanks for the question. When I look at the industry cloud opportunities, we think of health care is a very critical opportunity for us and a huge and expansive addressable market. If you think about as a percentage of GDP, obviously, health care is significant. And fundamentally, when I think about the provider market, in particular, digital tech is going to play a huge role for every provider to do the things that they care the most about, which is improve the patient outcomes and reduce cost and reduce the burden on the physicians.
+ - Source : MSFT's earning call transcript 2021-Q3
+   Snippet: So that's where the Nuance acquisition is a great fit for us. We've been partnered with them. It also enhances our platform approach, Brent. What we have always done has gone into an industry with a platform and an ecosystem approach. For example, with Nuance, they've done a fantastic job of taking what's perhaps the most defining technology of our times, which is AI and applying it to health care, which is the most important application space. And they've done that again by really partnering, partnering deeply with EMR systems and the rest of the health care ecosystem, ultimately to benefit the providers.
+ - Source : MSFT's earning call transcript 2021-Q3
+   Snippet: And so we're really looking forward to that acquisition closing, and we're already partnered with them in our cloud. But this allows us to take that and integrate more deeply with what we're doing with Teams and some of our AI capabilities even more deeply, and we think we can add a significant amount of value, both to our partners in the health care ecosystem as well as most importantly, to the providers.
+
+【Recall】: 0.0
+
+=========== Sample 33 ===========
+【Question】:
+ list me the acquisition did microsoft made in the past three years
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2022-Q3', '2022-Q4', '2023-Q1', '2023-Q2', '2023-Q3', '2023-Q4', '2024-Q1'], 'query': 'acquisition', 'tickers': ['MSFT']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000095017023054855/msft-20230930.htm
+   Snippet: On October 13, 2023, we completed our acquisition of Activision Blizzard, Inc. (“Activision Blizzard”) for a cash payment of $61.8 billion, net of cash acquired. Activision Blizzard is a leader in game development and an interactive entertainment content publisher. The acquisition will accelerate the growth in our gaming business across mobile, PC, console, and cloud gaming.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000095017023054855/msft-20230930.htm
+   Snippet: Due to the limited amount of time since closing the transaction, the preliminary allocation of the purchase price is not yet complete. The initial purchase price allocation will be provided within our Form 10-Q for the second quarter of fiscal year 2024, and we expect most of the purchase price will be allocated to goodwill and other identifiable intangible assets. Activision Blizzard will be included in our consolidated financial statements beginning on the date of acquisition and reported as part of our More Personal Computing segment.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000095017023035122/msft-20230630.htm
+   Snippet: On January 18, 2022, we entered into a definitive agreement to acquire Activision Blizzard, Inc. (“Activision Blizzard”) for $95.00 per share in an all-cash transaction valued at $68.7 billion, inclusive of Activision Blizzard’s net cash. The acquisition has been approved by Activision Blizzard’s shareholders. We continue to work toward closing the transaction subject to obtaining required regulatory approvals and  satisfaction of other customary closing conditions. Microsoft and Activision Blizzard have jointly agreed to extend the merger agreement through October 18, 2023 to allow for additional time to resolve remaining regulatory concerns.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000095017023035122/msft-20230630.htm
+   Snippet: On March 4, 2022, we completed our acquisition of Nuance Communications, Inc. (“Nuance”) for a total purchase price of $18.8 billion, consisting primarily of cash. Nuance is a cloud and artificial intelligence (“AI”) software provider with healthcare and enterprise AI experience, and the acquisition will build on our industry-specific cloud offerings. The financial results of Nuance have been included in our consolidated financial statements since the date of the acquisition. Nuance is reported as part of our Intelligent Cloud segment.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000095017023035122/msft-20230630.htm
+   Snippet: On March 9, 2021, we completed our acquisition of ZeniMax Media Inc. (“ZeniMax”), the parent company of Bethesda Softworks LLC (“Bethesda”), for a total purchase price of $8.1 billion, consisting primarily of cash. The purchase price included $766 million of cash and cash equivalents acquired. Bethesda is one of the largest, privately held game developers and publishers in the world, and brings a broad portfolio of games, technology, and talent to Xbox. The financial results of ZeniMax have been included in our consolidated financial statements since the date of the acquisition. ZeniMax is reported as part of our More Personal Computing segment.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000095017023035122/msft-20230630.htm
+   Snippet: On January 18, 2022, we entered into a definitive agreement to acquire Activision Blizzard, Inc. (“Activision Blizzard”) for $95.00 per share in an all-cash transaction valued at $68.7 billion, inclusive of Activision Blizzard’s net cash. Activision Blizzard is a leader in game development and an interactive entertainment content publisher. The acquisition will accelerate the growth in our gaming business across mobile, PC, console, and cloud gaming. The acquisition has been approved by Activision Blizzard’s shareholders. We continue to work toward closing the transaction subject to obtaining required regulatory approvals and satisfaction of other customary closing conditions. Microsoft and Activision Blizzard have jointly agreed to extend the merger agreement through October 18, 2023 to allow for additional time to resolve remaining regulatory concerns.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000095017023035122/msft-20230630.htm
+   Snippet: The measurement periods for the valuation of assets acquired and liabilities assumed end as soon as information on the facts and circumstances that existed as of the acquisition dates becomes available, but do not exceed 12 months. Adjustments in purchase price allocations may require a change in the amounts allocated to goodwill during the periods in which the adjustments are determined.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000095017023014423/msft-20230331.htm
+   Snippet: On March 4, 2022, we completed our acquisition of Nuance Communications, Inc. (“Nuance”) for a total purchase price of $18.8 billion, consisting primarily of cash. Nuance is a cloud and artificial intelligence (“AI”) software provider with healthcare and enterprise AI experience, and the acquisition will build on our industry-specific cloud offerings. The financial results of Nuance have been included in our consolidated financial statements since the date of the acquisition. Nuance is reported as part of our Intelligent Cloud segment.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000095017023014423/msft-20230331.htm
+   Snippet: On January 18, 2022, we entered into a definitive agreement to acquire Activision Blizzard, Inc. (“Activision Blizzard”) for $95.00 per share in an all-cash transaction valued at $68.7 billion, inclusive of Activision Blizzard’s net cash. Activision Blizzard is a leader in game development and an interactive entertainment content publisher. The acquisition will accelerate the growth in our gaming business across mobile, PC, console, and cloud gaming. The acquisition has been approved by Activision Blizzard’s shareholders. We are continuing to engage with regulators reviewing the transaction and are working toward closing it in fiscal year 2023, subject to obtaining required regulatory approvals and satisfaction of other customary closing conditions.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000095017023014423/msft-20230331.htm
+   Snippet: 
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459023000733/msft-10q_20221231.htm
+   Snippet: On March 4, 2022, we completed our acquisition of Nuance Communications, Inc. (“Nuance”) for a total purchase price of $18.8 billion, consisting primarily of cash. Nuance is a cloud and artificial intelligence (“AI”) software provider with healthcare and enterprise AI experience, and the acquisition will build on our industry-specific cloud offerings. The financial results of Nuance have been included in our consolidated financial statements since the date of the acquisition. Nuance is reported as part of our Intelligent Cloud segment.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459023000733/msft-10q_20221231.htm
+   Snippet: On January 18, 2022, we entered into a definitive agreement to acquire Activision Blizzard, Inc. (“Activision Blizzard”) for $95.00 per share in an all-cash transaction valued at $68.7 billion, inclusive of Activision Blizzard’s net cash. Activision Blizzard is a leader in game development and an interactive entertainment content publisher. The acquisition will accelerate the growth in our gaming business across mobile, PC, console, and cloud gaming. The acquisition has been approved by Activision Blizzard’s shareholders. We are continuing to engage with regulators reviewing the transaction and are working toward closing it in fiscal year 2023, subject to obtaining required regulatory approvals and satisfaction of other customary closing conditions.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022035087/msft-10q_20220930.htm
+   Snippet: On March 4, 2022, we completed our acquisition of Nuance Communications, Inc. (“Nuance”) for a total purchase price of $18.8 billion, consisting primarily of cash. Nuance is a cloud and artificial intelligence (“AI”) software provider with healthcare and enterprise AI experience, and the acquisition will build on our industry-specific cloud offerings. The financial results of Nuance have been included in our consolidated financial statements since the date of the acquisition. Nuance is reported as part of our Intelligent Cloud segment.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022035087/msft-10q_20220930.htm
+   Snippet: On January 18, 2022, we entered into a definitive agreement to acquire Activision Blizzard, Inc. (“Activision Blizzard”) for $95.00 per share in an all-cash transaction valued at $68.7 billion, inclusive of Activision Blizzard’s net cash. Activision Blizzard is a leader in game development and an interactive entertainment content publisher. The acquisition will accelerate the growth in our gaming business across mobile, PC, console, and cloud and will provide building blocks for the metaverse. The acquisition has been approved by Activision Blizzard’s shareholders, and we expect it to close in fiscal year 2023, subject to the satisfaction of certain regulatory approvals and other customary closing conditions.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022035087/msft-10q_20220930.htm
+   Snippet: On January 18, 2022, we entered into a definitive agreement to acquire Activision Blizzard, Inc. (“Activision Blizzard”) for $95.00 per share in an all-cash transaction valued at $68.7 billion, inclusive of Activision Blizzard’s net cash. The acquisition has been approved by Activision Blizzard’s shareholders, and we expect it to close in fiscal year 2023, subject to the satisfaction of certain regulatory approvals and other customary closing conditions.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022026876/msft-10k_20220630.htm
+   Snippet: In March 2022, we completed our acquisition of Nuance Communications, Inc. (“Nuance”). Together, Microsoft and Nuance will enable organizations across industries to accelerate their business goals with security-focused, cloud-based solutions infused with powerful, vertically optimized AI.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022026876/msft-10k_20220630.htm
+   Snippet: We have a strong position with our large and growing highly engaged community of gamers, including the acquisition of ZeniMax Media Inc., the parent company of Bethesda Softworks LLC. In January 2022, we announced plans to acquire Activision Blizzard, Inc., a leader in game development and an interactive entertainment content publisher.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022026876/msft-10k_20220630.htm
+   Snippet: We expect to continue making acquisitions and entering into joint ventures and strategic alliances as part of our long-term business strategy. For example, in March 2021 we completed our acquisition of ZeniMax Media Inc. for $8.1 billion, and in March 2022 we completed our acquisition of Nuance Communications, Inc. for $18.8 billion. In January 2022 we announced a definitive agreement to acquire Activision Blizzard, Inc. for $68.7 billion.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022026876/msft-10k_20220630.htm
+   Snippet: On March 4, 2022, we completed our acquisition of Nuance Communications, Inc. (“Nuance”) for a total purchase price of $18.8 billion, consisting primarily of cash. Nuance is a cloud and artificial intelligence (“AI”) software provider with healthcare and enterprise AI experience, and the acquisition will build on our industry-specific cloud offerings. The financial results of Nuance have been included in our consolidated financial statements since the date of the acquisition.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022026876/msft-10k_20220630.htm
+   Snippet: n the third quarter of fiscal year 2022, we completed our acquisition of Nuance. Nuance is included in all commercial metrics and our Server products and cloud services revenue growth metric. Azure and other cloud services revenue includes Nuance cloud services, and Server products revenue includes Nuance on-premises offerings.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022026876/msft-10k_20220630.htm
+   Snippet: On January 18, 2022, we entered into a definitive agreement to acquire Activision Blizzard, Inc. (“Activision Blizzard”) for $95.00 per share in an all-cash transaction valued at $68.7 billion, inclusive of Activision Blizzard’s net cash. The acquisition has been approved by Activision Blizzard’s shareholders, and we expect it to close in fiscal year 2023, subject to the satisfaction of certain regulatory approvals and other customary closing conditions.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022026876/msft-10k_20220630.htm
+   Snippet: On March 4, 2022, we completed our acquisition of Nuance Communications, Inc. (“Nuance”) for a total purchase price of $18.8 billion, consisting primarily of cash. Nuance is a cloud and artificial intelligence (“AI”) software provider with healthcare and enterprise AI experience, and the acquisition will build on our industry-specific cloud offerings. The financial results of Nuance have been included in our consolidated financial statements since the date of the acquisition. Nuance is reported as part of our Intelligent Cloud segment.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022026876/msft-10k_20220630.htm
+   Snippet: The purchase price allocation as of the date of acquisition was based on a preliminary valuation and is subject to revision as more detailed analyses are completed and additional information about the fair value of assets acquired and liabilities assumed becomes available.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022026876/msft-10k_20220630.htm
+   Snippet: On March 9, 2021, we completed our acquisition of ZeniMax Media Inc. (“ZeniMax”), the parent company of Bethesda Softworks LLC (“Bethesda”), for a total purchase price of $8.1 billion, consisting primarily of cash. The purchase price included $766 million of cash and cash equivalents acquired. Bethesda is one of the largest, privately held game developers and publishers in the world, and brings a broad portfolio of games, technology, and talent to Xbox. The financial results of ZeniMax have been included in our consolidated financial statements since the date of the acquisition. ZeniMax is reported as part of our More Personal Computing segment.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022026876/msft-10k_20220630.htm
+   Snippet: On January 18, 2022, we entered into a definitive agreement to acquire Activision Blizzard, Inc. (“Activision Blizzard”) for $95.00 per share in an all-cash transaction valued at $68.7 billion, inclusive of Activision Blizzard’s net cash. Activision Blizzard is a leader in game development and an interactive entertainment content publisher. The acquisition will accelerate the growth in our gaming business across mobile, PC, console, and cloud and will provide building blocks for the metaverse. The acquisition has been approved by Activision Blizzard’s shareholders, and we expect it to close in fiscal year 2023, subject to the satisfaction of certain regulatory approvals and other customary closing conditions.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022015675/msft-10q_20220331.htm
+   Snippet: On March 4, 2022, we completed our acquisition of Nuance Communications, Inc. (“Nuance”) for a total purchase price of $18.8 billion, consisting primarily of cash. Nuance is a cloud and artificial intelligence (“AI”) software provider with healthcare and enterprise AI experience, and the acquisition will build on our industry-specific cloud offerings. The financial results of Nuance have been included in our consolidated financial statements since the date of the acquisition. Nuance is reported as part of our Intelligent Cloud segment.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022015675/msft-10q_20220331.htm
+   Snippet: The purchase price allocation as of the date of acquisition was based on a preliminary valuation and is subject to revision as more detailed analyses are completed and additional information about the fair value of assets acquired and liabilities assumed becomes available.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022015675/msft-10q_20220331.htm
+   Snippet: On March 9, 2021, we completed our acquisition of ZeniMax Media Inc. (“ZeniMax”), the parent company of Bethesda Softworks LLC (“Bethesda”), for a total purchase price of $8.1 billion, consisting primarily of cash. The purchase price included $766 million of cash and cash equivalents acquired. Bethesda is one of the largest, privately held game developers and publishers in the world, and brings a broad portfolio of games, technology, and talent to Xbox. The financial results of ZeniMax have been included in our consolidated financial statements since the date of the acquisition. ZeniMax is reported as part of our More Personal Computing segment.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022015675/msft-10q_20220331.htm
+   Snippet: On January 18, 2022, we entered into a definitive agreement to acquire Activision Blizzard, Inc. (“Activision Blizzard”) for $95.00 per share in an all-cash transaction valued at $68.7 billion, inclusive of Activision Blizzard’s net cash. Activision Blizzard is a leader in game development and an interactive entertainment content publisher. The acquisition will accelerate the growth in our gaming business across mobile, PC, console, and cloud and will provide building blocks for the metaverse. We expect this acquisition to close in fiscal year 2023, subject to approval by Activision Blizzard’s shareholders, the satisfaction of certain regulatory approvals, and other customary closing conditions.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022015675/msft-10q_20220331.htm
+   Snippet: On March 4, 2022, we completed our acquisition of Nuance Communications, Inc. (“Nuance”) for a total purchase price of $18.8 billion, consisting primarily of cash. Nuance is a cloud and artificial intelligence (“AI”) software provider with healthcare and enterprise AI experience, and the acquisition will build on our industry-specific cloud offerings. The financial results of Nuance have been included in our consolidated financial statements since the date of the acquisition.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022015675/msft-10q_20220331.htm
+   Snippet: On January 18, 2022, we entered into a definitive agreement to acquire Activision Blizzard, Inc. (“Activision Blizzard”) for $95.00 per share in an all-cash transaction valued at $68.7 billion, inclusive of Activision Blizzard’s net cash. We expect this acquisition to close in fiscal year 2023, subject to approval by Activision Blizzard’s shareholders, the satisfaction of certain regulatory approvals, and other customary closing conditions.
+ - Source : https://www.sec.gov/Archives/edgar/data/789019/000156459022015675/msft-10q_20220331.htm
+   Snippet: We expect to continue making acquisitions and entering into joint ventures and strategic alliances as part of our long-term business strategy. For example, in October 2018 we completed our acquisition of GitHub, Inc. (“GitHub”) for $7.5 billion, in March 2021 we completed our acquisition of ZeniMax Media Inc. for $8.1 billion, and in March 2022 we completed our acquisition of Nuance Communications, Inc. for $18.8 billion. In January 2022 we announced a definitive agreement to acquire Activision Blizzard, Inc. for $68.7 billion.
+
+【Recall】: 0.0
+
+=========== Sample 34 ===========
+【Question】:
+ What does deferred automotive sales revenue increase this quarter?
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2023-Q3', '2023-Q2'], 'query': 'deferred revenue, automotive sales revenue, deferred automotive sales', 'tickers': ['TSLA']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : https://www.sec.gov/Archives/edgar/data/1318605/000162828023034847/tsla-20230930.htm
+   Snippet: Deferred revenue is related to the access to our Full Self Driving (“FSD”) features and ongoing maintenance, internet connectivity, free Supercharging programs and over-the-air software updates primarily on automotive sales, which amounted to $3.27 billion and $2.91 billion as of September 30, 2023 and December 31, 2022, respectively.
+ - Source : https://www.sec.gov/Archives/edgar/data/1318605/000095017023033872/tsla-20230630.htm
+   Snippet: Deferred revenue is related to the access to our Full Self Driving (“FSD”) features and ongoing maintenance, internet connectivity, free Supercharging programs and over-the-air software updates primarily on automotive sales, which amounted to $3.17 billion and $2.91 billion as of June 30, 2023 and December 31, 2022, respectively.
+
+【Recall】: 0.0
+
+=========== Sample 35 ===========
+【Question】:
+ What is the deferred automotive sales revenue this quarter for tesla?
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2023-Q3'], 'query': 'deferred revenue, automotive sales revenue, deferred automotive sales', 'tickers': ['TSLA']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : https://www.sec.gov/Archives/edgar/data/1318605/000162828023034847/tsla-20230930.htm
+   Snippet: Deferred revenue is related to the access to our Full Self Driving (“FSD”) features and ongoing maintenance, internet connectivity, free Supercharging programs and over-the-air software updates primarily on automotive sales, which amounted to $3.27 billion and $2.91 billion as of September 30, 2023 and December 31, 2022, respectively.
+
+【Recall】: 0.0
+
+=========== Sample 36 ===========
+【Question】:
+ Which business is highest margin for tesla?
+
+【Func Calls】:
+
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q3'], 'query': 'highest margin', 'tickers': ['TSLA']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : TSLA's earning call transcript 2023-Q3
+   Snippet: And as this business grows, the energy division is becoming our highest-margin business. Energy and service now contribute over $0.5 billion to quarterly profit.
+
+【Recall】: 0.0
+
+=========== Sample 37 ===========
+【Question】:
+ What are Elon's comments on Cybertruck? 
+
+【Func Calls】:
+
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q3'], 'query': 'Cybertruck', 'tickers': ['TSLA']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : TSLA's earning call transcript 2023-Q3
+   Snippet: The Cybertruck, I know a lot of people are excited about Cybertruck, I am too. I've driven the car. It's an amazing product. I do want to emphasize that there will be enormous challenges in reaching volume production with the Cybertruck and then in making a Cybertruck cash flow positive. This is simply normal for -- when you've got a product with a lot of new technology or any new -- brand-new vehicle program, but especially one that is as different and advanced as the Cybertruck, you will have problems proportionate to how many new things you're trying to solve at scale. So I just want to emphasize that, one, I think this is potentially our best product ever, and I think it is our best product ever. It is going to be -- require immense work to reach volume production and be cash flow positive at a price that people can afford.
+ - Source : TSLA's earning call transcript 2023-Q3
+   Snippet: So I just want to temper expectations for Cybertruck. It's a great product.
+
+【Recall】: 0.0
+
+=========== Sample 38 ===========
+【Question】:
+ How quickly did Elon think Cybertruck will become a positive cash flow contributor?
+
+【Func Calls】:
+
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q3'], 'query': 'positive cash flow, Cybertruck', 'tickers': ['TSLA']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : https://www.sec.gov/Archives/edgar/data/1318605/000162828023034847/tsla-20230930.htm
+   Snippet: But financially, it will take, I don't know, a year to 18 months before it is a significant positive cash flow contributor. I wish there was some way for that to be different, but that's my best guess.
+
+【Recall】: 0.0
+
+=========== Sample 39 ===========
+【Question】:
+ How many people demand for cybertruck?
+
+【Func Calls】:
+
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q3'], 'query': 'demand for cybertruck, reserve', 'tickers': ['TSLA']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : TSLA's earning call transcript 2023-Q3
+   Snippet: So really, the demand is off the charts. We have over 1 million people who have reserved the car. So it's not a demand issue, but we have to make it, and we need to make it at a price that people can afford; insanely difficult things.
+
+【Recall】: 0.0
+
+=========== Sample 40 ===========
+【Question】:
+ help me compare the free cash flow of tesla and nvidia
+
+【Func Calls】:
+
+ - Function: search_sec_filings
+   Params  : {'periods': ['2023-Q3'], 'query': 'free cash flow, fcf', 'tickers': ['TSLA', 'NVDA']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : TSLA's earning call transcript 2023-Q3
+   Snippet: However, our focus is to continue making investments through positive cash flow from operations. This year itself we have generated operating cash flows of approximately $8.9 billion and free cash flows of approximately $2.3 billion.
+
+【Recall】: 0.0
+
+=========== Sample 41 ===========
+【Question】:
+ How many cybertruck did Elon anticipate to sale in the next year? 
+
+【Func Calls】:
+
+ - Function: search_earning_calls
+   Params  : {'periods': ['2023-Q3'], 'query': 'sales of cybertruck', 'tickers': ['TSLA']}
+
+
+【Retrieved Snippets】:
+
+
+
+【Missed Snippets】:
+
+ - Source : TSLA's earning call transcript 2023-Q3
+   Snippet: I think we'll end up with roughly 0.25 million Cybertrucks a year, and -- but we're not -- I don't think we're going to reach that output rate next year. I think we'll probably reach it sometime in 2025. That's my best guess.
+
+【Recall】: 0.0
+
+======= Final Score =======
+
+Recall: 0.0
+
+(All scores are out of 1.0)
+======= LLM Cost =======
+
+Number of calls: 0
+Prompt tokens: 0
+Completion tokens: 0
+Total tokens: 0
+Total cost(USD): 0.0
+
+
+                      EOF
