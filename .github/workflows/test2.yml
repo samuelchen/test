@@ -22,7 +22,7 @@ jobs:
             -   run: echo "${{ github.event.pull_request.url }}"
             -   name: Add comment to PR
                 env:
-                    URL: ${{ github.event.pull_request.url }}
+                    URL: ${{ github.event.pull_request.comments_url }}
                     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 run: |
                     curl \
