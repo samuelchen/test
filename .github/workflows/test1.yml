@@ -5,7 +5,7 @@ on:
 
 jobs:
     eval:
-        uses: onwish/cocktail/.github/workflows/test.yml@master
+        uses: samuelchen/test/.github/workflows/test.yml@master
         with:
             eval_type: retrieval
             dataset: simple
