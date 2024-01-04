@@ -35,6 +35,7 @@ jobs:
                     delta="${delta//'%'/'%25'}"
                     delta="${delta//$'\n'/'%0A'}"
                     delta="${delta//$'\r'/'%0D'}"
+                    delta="${delta//$'"'/'\"'}"
                     echo "::set-output name=delta_code::$delta"
 
             -   name: Report
