@@ -7,11 +7,12 @@ jobs:
     eval:
         uses: onwish/cocktail/.github/workflows/test.yml@master
         with:
+            eval_type: retrieval
             dataset: simple
 
     report:
         runs-on: ubuntu-latest
         needs: eval
         steps:
-            -   run: echo ${{ needs.job1.outputs.reports }}
+            -   run: echo ${{ needs.eval.outputs.reports }}
 
