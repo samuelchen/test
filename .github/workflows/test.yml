@@ -1,0 +1,34 @@
+name: test
+
+on:
+  workflow_dispatch:
+  workflow_call:
+      inputs:
+          eval_type:
+              description: 'agent/retrieval/plan_retrieval'
+              default: 'retrieval'
+              required: true
+              type: string
+          dataset:
+              description: 'Dataset to evaluate on'
+              default: 'simple'
+              required: true
+              type: string
+      outputs:
+          report:
+              description: "The eval report"
+              value: ${{ jobs.eval.outputs.report }}
+jobs:
+    eval:
+        runs-on: ubuntu-latest
+        outputs:
+            report: ${{ steps.step1.outputs }}
+        env:
+            ENV: test
+            DATASET: ${{ inputs.dataset}}
+        steps:
+            -   name: Run Eval
+                id: step1
+                run: |
+                    CMD="echo 'first line of output ${{ inputs.eval_type }} ${env}'; echo 'second line of output'; echo '3rd line of output'"
+                    eval $CMD
