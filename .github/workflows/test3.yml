@@ -1,17 +1,15 @@
 name: PR Caller1
 
 on:
-    pull_request:
-        types:
-            - labeled
-
+    workflow_dispatch:
+    
 jobs:
     report:
         runs-on: ubuntu-latest
         steps:
             -   name: Add comment to PR
                 env:
-                    URL: ${{ github.event.pull_request.comments_url }}
+                    URL: https://api.github.com/repos/samuelchen/test/issues/1/comments
                     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                 run: |
                     curl \
