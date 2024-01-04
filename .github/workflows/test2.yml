@@ -18,8 +18,12 @@ jobs:
         runs-on: ubuntu-latest
         needs: eval
         steps:
-            -   run: echo "${{ needs.eval.outputs.report }}"
-            -   run: echo "${{ github.event.pull_request.comments_url }}"
+            -   run: |
+                    cat > report-data.json <<EOF
+                    {
+                        "data": "${{ needs.eval.outputs.report }}"
+                    }
+                    EOF
             -   name: Add comment to PR
                 env:
                     URL: ${{ github.event.pull_request.comments_url }}
@@ -31,6 +35,4 @@ jobs:
                     -H "Content-Type: application/json" \
                     -H "Authorization: Bearer $GITHUB_TOKEN" \
                     -H "X-GitHub-Api-Version: 2022-11-28" \
-                    --data-binary @- << EOF
-                    { "body": "${{ needs.eval.outputs.report }}" }
-                    EOF
+                    --data @report-data.json
