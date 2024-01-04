@@ -14,5 +14,5 @@ jobs:
         runs-on: ubuntu-latest
         needs: eval
         steps:
-            -   run: echo ${{ needs.eval.outputs.reports }}
+            -   run: echo ${{ needs.eval.outputs.report }}
 
