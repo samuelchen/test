@@ -9,12 +9,12 @@ on:
             eval_type:
                 description: 'agent/retrieval/plan_retrieval'
                 default: 'retrieval'
-                required: true
+                required: false
                 type: string
             dataset:
                 description: 'Dataset to evaluate on'
                 default: 'simple'
-                required: true
+                required: false
                 type: string
 
 jobs:
