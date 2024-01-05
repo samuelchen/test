@@ -1,8 +1,10 @@
 name: Mixed
 
 on:
+    schedule:
+        -   cron: '*/1 * * * *'
+
     workflow_dispatch:
-    workflow_call:
         inputs:
             eval_type:
                 description: 'agent/retrieval/plan_retrieval'
@@ -14,23 +16,20 @@ on:
                 default: 'simple'
                 required: true
                 type: string
-        outputs:
-            report:
-                description: "The eval report"
-                value: ${{ jobs.eval.outputs.report }}
+
 jobs:
     eval:
         runs-on: ubuntu-latest
         outputs:
             report: ${{ steps.step1.outputs.delta_code }}
         env:
-            ENV: test
+            EVAL_TYPE: ${{ inputs.eval_type }}
             DATASET: ${{ inputs.dataset }}
         steps:
             -   name: Run Eval
                 id: step1
                 run: |
-                    CMD="echo 'first line of output "${{ inputs.eval_type }}" "${env}"'; echo 'second line of output'; echo '3rd line of output'"
+                    CMD="echo 'first line of output "${{ inputs.eval_type }}" "${env}" "${DATASET}" '; echo 'second line of output'; echo '3rd line of output'"
                     delta=$(eval $CMD)
                     delta="${delta//'%'/'%25'}"
                     delta="${delta//$'\n'/'%0A'}"
